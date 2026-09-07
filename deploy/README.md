@@ -13,6 +13,13 @@ separate from the Production Audit System (RittalTLSW).
   startup (`Database.Migrate()`), so a fresh deploy against an empty database
   builds the schema and seeds Stores/Dispatch. To apply out of band:
   `dotnet ef database update`.
+- **Turnkey option — `deploy/create-database.sql`.** One idempotent script that
+  creates the `RittalSupportSW` database, the `db_Public_User` login/user, the
+  full schema, the Stores/Dispatch seed data, and the EF migration-history rows
+  (so the app's startup migration then makes no further changes). Run it once
+  with SSMS or `sqlcmd -S csmsvr02 -E -i deploy/create-database.sql`. Safe to
+  re-run. Change the login password in the script before production use and keep
+  the connection string in step.
 
 ## Publish
 
