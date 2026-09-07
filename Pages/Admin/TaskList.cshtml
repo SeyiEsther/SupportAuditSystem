@@ -1,0 +1,135 @@
+@page
+@model SupportAuditSystem.Pages.Admin.TaskListModel
+@{
+    ViewData["Title"] = "Edit task list";
+    var items = (Model.Current?.Items ?? new()).OrderBy(i => i.SortOrder).ToList();
+    var saved = TempData["Saved"] as string;
+}
+
+<div class="wrap">
+    <div class="page-head">
+        <div>
+            <div class="page-title">@Model.Area?.Name — @Model.Shift?.Name</div>
+            <div class="page-sub">@Model.Area?.Department?.Name
+                @if (Model.Current != null) { <text>· current version v@Model.Current.Version</text> }
+                else { <text>· no task list yet</text> }
+            </div>
+        </div>
+        <a class="sbtn" asp-page="/Admin/Index">Back to admin</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(saved))
+    {
+        <div class="shift-hub-ok card" style="margin-bottom:14px">
+            <div class="shift-hub-ok-icon">✓</div><div>@saved</div>
+        </div>
+    }
+
+    <div class="hint">Editing a list that has already been filled against creates a new version. Completed checklists keep the version they were signed on.</div>
+
+    <form method="post" id="tl-form">
+        <input type="hidden" name="AreaId" value="@Model.AreaId">
+        <input type="hidden" name="ShiftId" value="@Model.ShiftId">
+        <input type="hidden" name="ItemsJson" id="ItemsJson">
+
+        <div class="card">
+            <div class="card-head"><div class="card-title">Task lines</div>
+                <button type="button" class="sbtn sm filter-apply" id="add-item">Add task</button></div>
+            <div id="items"></div>
+            <div class="empty" id="empty-note" hidden>No task lines yet — add one, or leave empty (e.g. Consumables).</div>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><div class="card-title">Health &amp; reps reminder line</div></div>
+            <div style="padding:14px 18px">
+                <textarea name="Reminder" class="audit-ta" rows="3"
+                          placeholder="@Model.DefaultReminder">@Model.Current?.HealthRepsReminder</textarea>
+                <div class="q-hint" style="margin-top:6px">Printed at the top of the PDF. Leave blank to use the standard wording.</div>
+            </div>
+        </div>
+
+        <div class="submit-bar">
+            <button type="submit" class="sbtn primary">Save task list</button>
+            <a class="sbtn" asp-page="/Admin/Index">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<template id="row-tpl">
+    <div class="tl-row card" style="margin:0 0 10px;padding:12px 14px">
+        <div style="display:flex;gap:8px;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;gap:4px">
+                <button type="button" class="sbtn sm tl-up" title="Move up">↑</button>
+                <button type="button" class="sbtn sm tl-down" title="Move down">↓</button>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                <textarea class="audit-ta tl-text" rows="2" placeholder="Task wording"></textarea>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+                    <input type="checkbox" class="tl-timeboxed"> Time-boxed (named checkpoints)
+                </label>
+                <input class="ff-input tl-checkpoints" style="padding-left:12px;display:none"
+                       placeholder="Checkpoints, comma-separated — e.g. 9am, 11am, 1pm, 3pm">
+            </div>
+            <button type="button" class="sbtn sm tl-remove" style="color:var(--red-text)" title="Remove">✕</button>
+        </div>
+    </div>
+</template>
+
+@section Scripts {
+<script>
+(function () {
+    var seed = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(items.Select(i => new {
+        text = i.Text,
+        isTimeBoxed = i.IsTimeBoxed,
+        checkpoints = i.Checkpoints.OrderBy(c => c.SortOrder).Select(c => c.Label).ToList()
+    })));
+
+    var container = document.getElementById('items');
+    var tpl = document.getElementById('row-tpl');
+    var emptyNote = document.getElementById('empty-note');
+
+    function refreshEmpty() { emptyNote.hidden = container.children.length > 0; }
+
+    function addRow(data) {
+        var node = tpl.content.firstElementChild.cloneNode(true);
+        var text = node.querySelector('.tl-text');
+        var tb = node.querySelector('.tl-timeboxed');
+        var cps = node.querySelector('.tl-checkpoints');
+        text.value = data && data.text ? data.text : '';
+        tb.checked = !!(data && data.isTimeBoxed);
+        cps.value = data && data.checkpoints ? data.checkpoints.join(', ') : '';
+        cps.style.display = tb.checked ? 'block' : 'none';
+
+        tb.addEventListener('change', function () { cps.style.display = tb.checked ? 'block' : 'none'; });
+        node.querySelector('.tl-remove').addEventListener('click', function () { node.remove(); refreshEmpty(); });
+        node.querySelector('.tl-up').addEventListener('click', function () {
+            var prev = node.previousElementSibling;
+            if (prev) container.insertBefore(node, prev);
+        });
+        node.querySelector('.tl-down').addEventListener('click', function () {
+            var next = node.nextElementSibling;
+            if (next) container.insertBefore(next, node);
+        });
+        container.appendChild(node);
+        refreshEmpty();
+    }
+
+    seed.forEach(addRow);
+    refreshEmpty();
+    document.getElementById('add-item').addEventListener('click', function () { addRow(null); });
+
+    document.getElementById('tl-form').addEventListener('submit', function () {
+        var rows = [];
+        container.querySelectorAll('.tl-row').forEach(function (row) {
+            var text = row.querySelector('.tl-text').value.trim();
+            if (!text) return;
+            var tb = row.querySelector('.tl-timeboxed').checked;
+            var cps = row.querySelector('.tl-checkpoints').value
+                .split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+            rows.push({ text: text, isTimeBoxed: tb && cps.length > 0, checkpoints: cps });
+        });
+        document.getElementById('ItemsJson').value = JSON.stringify(rows);
+    });
+})();
+</script>
+}

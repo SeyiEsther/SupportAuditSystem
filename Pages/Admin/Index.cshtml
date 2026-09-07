@@ -1,0 +1,153 @@
+@page
+@model SupportAuditSystem.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "Admin configuration";
+}
+
+<div class="page">
+    <div class="page-head">
+        <div>
+            <div class="page-title">Configuration</div>
+            <div class="page-sub">Departments, areas, shifts and task lists — everything is data, nothing is in code.</div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Notice))
+    {
+        <div class="escl-banner" style="border-radius:12px;margin-bottom:14px">@Model.Notice</div>
+    }
+
+    <div class="card">
+        <div class="card-head"><div class="card-title">Add a department</div></div>
+        <form method="post" asp-page-handler="AddDepartment" class="filters">
+            <div class="ff"><span class="ff-label">Name</span><div class="ff-control">
+                <input name="name" class="ff-input" style="padding-left:12px" placeholder="e.g. Logistics" required></div></div>
+            <div class="filter-actions"><button class="sbtn filter-apply" type="submit">Add department</button></div>
+        </form>
+    </div>
+
+    @foreach (var d in Model.Departments)
+    {
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title">@d.Name @(d.IsActive ? "" : "(inactive)")</div>
+            </div>
+
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border)">
+                <form method="post" asp-page-handler="EditDepartment" class="filters" style="padding:0">
+                    <input type="hidden" name="id" value="@d.Id">
+                    <div class="ff"><span class="ff-label">Rename</span><div class="ff-control">
+                        <input name="name" class="ff-input" style="padding-left:12px" value="@d.Name" required></div></div>
+                    <div class="ff"><span class="ff-label">Active</span><div class="ff-control">
+                        <select name="isActive" class="ff-select">
+                            <option value="true" selected="@d.IsActive">Active</option>
+                            <option value="false" selected="@(!d.IsActive)">Inactive</option>
+                        </select></div></div>
+                    <div class="filter-actions">
+                        <button class="sbtn" type="submit">Save</button>
+                        <button class="sbtn" type="submit" asp-page-handler="DeleteDepartment"
+                                onclick="return confirm('Delete @d.Name and all its areas, shifts and task lists?')"
+                                style="color:var(--red-text)">Delete</button>
+                    </div>
+                </form>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+                <!-- Areas -->
+                <div style="padding:14px 18px;border-right:1px solid var(--border)">
+                    <div class="chart-title" style="margin-bottom:10px">Areas</div>
+                    @foreach (var a in d.Areas)
+                    {
+                        <form method="post" asp-page-handler="EditArea" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+                            <input type="hidden" name="id" value="@a.Id">
+                            <input name="name" class="ff-input" style="padding-left:12px;flex:1;min-width:120px" value="@a.Name">
+                            <input name="defaultLocation" class="ff-input" style="padding-left:12px;flex:1;min-width:100px" value="@a.DefaultLocation" placeholder="Location">
+                            <select name="isActive" class="ff-select" style="min-width:0;width:auto">
+                                <option value="true" selected="@a.IsActive">On</option>
+                                <option value="false" selected="@(!a.IsActive)">Off</option>
+                            </select>
+                            <button class="sbtn sm" type="submit">Save</button>
+                            <button class="sbtn sm" type="submit" asp-page-handler="DeleteArea"
+                                    onclick="return confirm('Delete area @a.Name?')" style="color:var(--red-text)">✕</button>
+                        </form>
+                    }
+                    <form method="post" asp-page-handler="AddArea" style="display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap">
+                        <input type="hidden" name="departmentId" value="@d.Id">
+                        <input name="name" class="ff-input" style="padding-left:12px;flex:1;min-width:120px" placeholder="New area" required>
+                        <input name="defaultLocation" class="ff-input" style="padding-left:12px;flex:1;min-width:100px" placeholder="Location">
+                        <button class="sbtn sm filter-apply" type="submit">Add</button>
+                    </form>
+                </div>
+
+                <!-- Shifts -->
+                <div style="padding:14px 18px">
+                    <div class="chart-title" style="margin-bottom:10px">Shifts</div>
+                    @foreach (var s in d.Shifts)
+                    {
+                        <form method="post" asp-page-handler="EditShift" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+                            <input type="hidden" name="id" value="@s.Id">
+                            <input name="name" class="ff-input" style="padding-left:12px;flex:1;min-width:120px" value="@s.Name">
+                            <select name="isActive" class="ff-select" style="min-width:0;width:auto">
+                                <option value="true" selected="@s.IsActive">On</option>
+                                <option value="false" selected="@(!s.IsActive)">Off</option>
+                            </select>
+                            <button class="sbtn sm" type="submit">Save</button>
+                            <button class="sbtn sm" type="submit" asp-page-handler="DeleteShift"
+                                    onclick="return confirm('Delete shift @s.Name?')" style="color:var(--red-text)">✕</button>
+                        </form>
+                    }
+                    <form method="post" asp-page-handler="AddShift" style="display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap">
+                        <input type="hidden" name="departmentId" value="@d.Id">
+                        <input name="name" class="ff-input" style="padding-left:12px;flex:1;min-width:120px" placeholder="New shift" required>
+                        <button class="sbtn sm filter-apply" type="submit">Add</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Task lists matrix -->
+            @if (d.Areas.Any() && d.Shifts.Any())
+            {
+                <div style="padding:14px 18px;border-top:1px solid var(--border)">
+                    <div class="chart-title" style="margin-bottom:10px">Task lists</div>
+                    <div class="grid-wrap" style="box-shadow:none;margin:0">
+                        <table style="min-width:0;table-layout:auto">
+                            <thead>
+                                <tr>
+                                    <th class="qcol" style="width:auto">Area \ Shift</th>
+                                    @foreach (var s in d.Shifts)
+                                    {
+                                        <th style="width:auto;padding:9px 10px">@s.Name</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var a in d.Areas)
+                                {
+                                    <tr class="dr">
+                                        <td class="ql" style="border-right:1px solid #e5e7eb">@a.Name</td>
+                                        @foreach (var s in d.Shifts)
+                                        {
+                                            var key = (a.Id, s.Id);
+                                            <td class="cell">
+                                                <a class="dl-link" asp-page="/Admin/TaskList" asp-route-areaId="@a.Id" asp-route-shiftId="@s.Id">
+                                                    @if (Model.TaskListInfo.TryGetValue(key, out var info))
+                                                    {
+                                                        <text>@info.Items items · v@(info.Version)</text>
+                                                    }
+                                                    else
+                                                    {
+                                                        <text>+ create</text>
+                                                    }
+                                                </a>
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,24 @@
+@page
+@model SuccessModel
+@{
+    ViewData["Title"] = "Checklist complete";
+    var s = Model.Submission!;
+    var areaName = s.Area?.Name ?? "";
+    var shiftName = s.Shift?.Name ?? "";
+    var pdfName = $"SHEF014_{s.ChecklistDate:yyyyMMdd}_{areaName.Replace(' ', '_')}_{shiftName.Replace(' ', '_')}.pdf";
+}
+
+<div class="success-wrap">
+    <div class="success-card">
+        <div class="success-icon">✓</div>
+        <div class="success-title">Checklist complete</div>
+        <div class="success-sub">@areaName — @shiftName shift</div>
+        <div class="success-ref">
+            @s.ChecklistDate.ToString("dddd dd MMM yyyy")<br>
+            Completed @(s.CompletedAt?.ToLocalTime().ToString("dd MMM yyyy HH:mm"))
+        </div>
+        <a class="welcome-btn primary" href="/api/checklist/@s.Id/pdf" data-filename="@pdfName">Download PDF</a>
+        <a class="welcome-btn secondary" asp-page="/Index">Start another checklist</a>
+        <a class="welcome-btn secondary" asp-page="/Completed">View completed checklists</a>
+    </div>
+</div>

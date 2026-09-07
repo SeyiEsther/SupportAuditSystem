@@ -1,0 +1,148 @@
+@page
+@model CompletedModel
+@{
+    ViewData["Title"] = "Completed checklists";
+    var allAreas = Model.Departments.SelectMany(d => d.Areas.Select(a => new { a.Id, a.Name, a.DepartmentId })).ToList();
+    var allShifts = Model.Departments.SelectMany(d => d.Shifts.Select(sh => new { sh.Id, sh.Name, sh.DepartmentId })).ToList();
+}
+
+<div class="page">
+    <div class="page-head">
+        <div>
+            <div class="page-title">Completed checklists</div>
+            <div class="page-sub">@Model.Rows.Count checklist(s)</div>
+        </div>
+    </div>
+
+    <div class="card card-filter">
+        <form method="get" class="filters">
+            <div class="ff">
+                <span class="ff-label">Department</span>
+                <div class="ff-control">
+                    <select name="DepartmentId" id="f-dept" class="ff-select">
+                        <option value="">All</option>
+                        @foreach (var d in Model.Departments)
+                        {
+                            <option value="@d.Id" selected="@(Model.DepartmentId == d.Id)">@d.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="ff">
+                <span class="ff-label">Area</span>
+                <div class="ff-control">
+                    <select name="AreaId" id="f-area" class="ff-select">
+                        <option value="">All</option>
+                        @foreach (var a in allAreas)
+                        {
+                            <option value="@a.Id" data-dept="@a.DepartmentId" selected="@(Model.AreaId == a.Id)">@a.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="ff">
+                <span class="ff-label">Shift</span>
+                <div class="ff-control">
+                    <select name="ShiftId" id="f-shift" class="ff-select">
+                        <option value="">All</option>
+                        @foreach (var sh in allShifts)
+                        {
+                            <option value="@sh.Id" data-dept="@sh.DepartmentId" selected="@(Model.ShiftId == sh.Id)">@sh.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="ff">
+                <span class="ff-label">From</span>
+                <div class="ff-control">
+                    <input type="date" name="From" class="ff-input" style="padding-left:12px"
+                           value="@(Model.From?.ToString("yyyy-MM-dd"))">
+                </div>
+            </div>
+            <div class="ff">
+                <span class="ff-label">To</span>
+                <div class="ff-control">
+                    <input type="date" name="To" class="ff-input" style="padding-left:12px"
+                           value="@(Model.To?.ToString("yyyy-MM-dd"))">
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="sbtn filter-apply">Apply</button>
+                <a class="sbtn" asp-page="/Completed">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="grid-wrap">
+        @if (Model.Rows.Count == 0)
+        {
+            <div class="empty">No completed checklists match these filters.</div>
+        }
+        else
+        {
+            <table style="min-width:820px;table-layout:auto">
+                <thead>
+                    <tr>
+                        <th class="qcol" style="width:auto">Date</th>
+                        <th class="qcol" style="width:auto">Department</th>
+                        <th class="qcol" style="width:auto">Area</th>
+                        <th class="qcol" style="width:auto">Shift</th>
+                        <th class="qcol" style="width:auto">Auditors</th>
+                        <th style="width:90px">Issues</th>
+                        <th style="width:90px">Answered</th>
+                        <th style="width:120px">Completed</th>
+                        <th style="width:80px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Rows)
+                    {
+                        var pdfName = $"SHEF014_{r.Date:yyyyMMdd}_{r.Area.Replace(' ', '_')}_{r.Shift.Replace(' ', '_')}.pdf";
+                        <tr class="dr">
+                            <td class="ql" style="border-right:1px solid #e5e7eb">@r.Date.ToString("ddd dd MMM yyyy")</td>
+                            <td class="ql" style="border-right:1px solid #e5e7eb">@r.Department</td>
+                            <td class="ql" style="border-right:1px solid #e5e7eb">@r.Area</td>
+                            <td class="ql" style="border-right:1px solid #e5e7eb">@r.Shift</td>
+                            <td class="ql" style="border-right:1px solid #e5e7eb">@(string.IsNullOrWhiteSpace(r.Auditors) ? "—" : r.Auditors)</td>
+                            <td class="cell">
+                                @if (r.IssueCount > 0)
+                                {
+                                    <span class="rv r">@r.IssueCount</span>
+                                }
+                                else
+                                {
+                                    <span class="rv g">0</span>
+                                }
+                            </td>
+                            <td class="cell">@r.Answered/@r.Total</td>
+                            <td class="cell">@(r.CompletedAt?.ToLocalTime().ToString("dd MMM HH:mm"))</td>
+                            <td class="cell">
+                                <a class="dl-link" href="/api/checklist/@r.Id/pdf" data-filename="@pdfName">PDF</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    (function () {
+        var dept = document.getElementById('f-dept');
+        var area = document.getElementById('f-area');
+        var shift = document.getElementById('f-shift');
+        function filter(sel) {
+            var d = dept.value;
+            Array.prototype.forEach.call(sel.options, function (opt) {
+                if (!opt.value) return;
+                opt.hidden = d && opt.getAttribute('data-dept') !== d;
+            });
+        }
+        function apply() { filter(area); filter(shift); }
+        dept.addEventListener('change', apply);
+        apply();
+    })();
+</script>
+}

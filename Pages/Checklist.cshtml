@@ -1,0 +1,292 @@
+@page
+@model ChecklistModel
+@{
+    ViewData["Title"] = "Checklist";
+    var s = Model.Submission!;
+    var deptName = s.Area?.Department?.Name ?? "";
+    var areaName = s.Area?.Name ?? "";
+    var shiftName = s.Shift?.Name ?? "";
+    var pdfName = $"SHEF014_{s.ChecklistDate:yyyyMMdd}_{areaName.Replace(' ', '_')}_{shiftName.Replace(' ', '_')}.pdf";
+}
+
+<div class="audit-wrap" data-audit-form data-sub-id="@s.Id">
+    <div class="audit-sticky">
+        <div class="audit-sticky-top">
+            <div>
+                <div class="audit-sticky-title">@areaName — @shiftName</div>
+                <div class="audit-sticky-sub">@deptName · @s.ChecklistDate.ToString("ddd dd MMM yyyy")
+                    @if (s.CompletedAt.HasValue) { <span class="audit-badge-editing" style="background:#dcfce7;color:#16a34a;border-color:#86efac">Completed</span> }
+                </div>
+            </div>
+            <div class="audit-progress-meta">
+                <div class="audit-progress-track"><div class="audit-progress-fill"></div></div>
+                <div class="audit-progress-text">@Model.AnsweredCount/@Model.TotalCount</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="summary-grid" style="grid-template-columns:1fr 1fr">
+        <h3>Checklist details</h3>
+        <div class="sfield">
+            <label for="AuditorNames">Auditor name(s)</label>
+            <textarea id="AuditorNames" data-header="auditorNames" rows="1"
+                      style="min-height:44px" placeholder="Names of everyone on this checklist">@s.AuditorNames</textarea>
+        </div>
+        <div class="sfield">
+            <label for="Location">Location</label>
+            <textarea id="Location" data-header="location" rows="1"
+                      style="min-height:44px" placeholder="e.g. DP1 &amp; DP3">@s.Location</textarea>
+        </div>
+    </div>
+
+    <form id="checklist-form" onsubmit="return false">
+        @if (Model.TotalCount == 0)
+        {
+            <div class="card"><div class="empty">This shift has no task lines configured yet. Ask an admin to add them.</div></div>
+        }
+        @foreach (var item in Model.Items)
+        {
+            Model.ResponsesByItem.TryGetValue(item.Id, out var r);
+            var status = r?.Status;
+            var hasIssue = status == SupportAuditSystem.Models.TaskStatus.Issue;
+            <div class="audit-card" data-task-card data-item-id="@item.Id">
+                <div class="audit-q">
+                    <div class="audit-q-label">
+                        <span>@item.Text</span>
+                        @if (item.IsTimeBoxed)
+                        {
+                            <span class="q-hint">Tick each checkpoint as it's genuinely done — the time is recorded.</span>
+                        }
+                    </div>
+                    @if (!item.IsTimeBoxed)
+                    {
+                        <div class="audit-yn" role="group" aria-label="Response">
+                            <input class="ayn-y" type="radio" name="st-@item.Id" id="done-@item.Id"
+                                   value="Done" @(status == "Done" ? "checked" : "")>
+                            <label for="done-@item.Id">Done</label>
+                            <input class="ayn-n" type="radio" name="st-@item.Id" id="issue-@item.Id"
+                                   value="Issue" @(hasIssue ? "checked" : "")>
+                            <label for="issue-@item.Id">Issue</label>
+                        </div>
+                    }
+                </div>
+
+                @if (item.IsTimeBoxed)
+                {
+                    <div class="chk-checkpoints">
+                        @foreach (var cp in item.Checkpoints.OrderBy(c => c.SortOrder))
+                        {
+                            var cr = r?.CheckpointResponses.FirstOrDefault(x => x.TaskCheckpointId == cp.Id);
+                            <button type="button" class="chk-cp @(cr?.Ticked == true ? "ticked" : "")"
+                                    data-cp-id="@cr?.Id" aria-pressed="@(cr?.Ticked == true ? "true" : "false")">
+                                <span class="chk-cp-label">@cp.Label</span>
+                                <span class="chk-cp-time">@(cr?.Ticked == true && cr.TickedAt != null ? cr.TickedAt.Value.ToLocalTime().ToString("HH:mm") : "")</span>
+                            </button>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="audit-note" data-note-block @(hasIssue ? "" : "hidden")>
+                        <label class="audit-note-lbl" for="note-@item.Id">Note (required for an issue)</label>
+                        <textarea class="audit-ta" id="note-@item.Id" data-note-for="@item.Id"
+                                  placeholder="Describe the issue">@r?.Notes</textarea>
+                    </div>
+                }
+            </div>
+        }
+    </form>
+
+    @if (Model.TotalCount > 0)
+    {
+        <div class="audit-footer">
+            <a class="sbtn" asp-page="/Index">Leave &amp; come back later</a>
+            <a class="sbtn" href="/api/checklist/@s.Id/pdf" data-filename="@pdfName">Download PDF</a>
+            <button type="button" class="welcome-btn primary" id="complete-btn" style="margin:0">Complete checklist</button>
+        </div>
+        <div id="complete-msg" class="err" style="text-align:center;margin-top:10px" hidden></div>
+    }
+</div>
+
+@section Scripts {
+<style>
+    .chk-checkpoints { display:flex; flex-wrap:wrap; gap:10px; padding:14px 18px; border-top:1px solid var(--border); }
+    .chk-cp {
+        display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+        min-width:72px; min-height:48px; padding:8px 14px; border:1px solid var(--border);
+        border-radius:12px; background:var(--white); font-family:inherit; cursor:pointer; color:var(--muted);
+        transition:background var(--dur-fast) var(--ease-ios), color var(--dur-fast) var(--ease-ios), border-color var(--dur-fast) var(--ease-ios), transform var(--dur-fast) var(--ease-spring);
+    }
+    .chk-cp:active { opacity:.85; }
+    .chk-cp-label { font-size:13px; font-weight:700; }
+    .chk-cp-time { font-size:11px; font-weight:600; min-height:13px; }
+    .chk-cp.ticked { background:var(--green-bg); color:var(--green); border-color:#86efac; }
+    .chk-saving { opacity:.55; }
+    .save-flash { animation:checkPop .4s var(--ease-spring); }
+</style>
+<script>
+(function () {
+    var wrap = document.querySelector('[data-audit-form]');
+    if (!wrap) return;
+    var subId = wrap.getAttribute('data-sub-id');
+    var token = document.querySelector('input[name="__RequestVerificationToken"]');
+    var tokenVal = token ? token.value : (document.querySelector('meta[name="csrf"]')||{}).content;
+
+    // Antiforgery token: pull from a hidden field rendered by any form on the page.
+    function csrf() {
+        var el = document.querySelector('input[name="__RequestVerificationToken"]');
+        return el ? el.value : '';
+    }
+
+    function post(url, body) {
+        return fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf() },
+            body: JSON.stringify(body)
+        }).then(function (res) {
+            return res.json().catch(function () { return { ok: res.ok }; })
+                .then(function (data) { return { ok: res.ok && data.ok !== false, data: data }; });
+        });
+    }
+
+    function flash(el, ok) {
+        if (!el) return;
+        el.classList.remove('chk-saving');
+        if (ok) { el.classList.add('save-flash'); setTimeout(function(){ el.classList.remove('save-flash'); }, 400); }
+    }
+
+    // Done / Issue radios — save immediately, toggle the note block.
+    wrap.querySelectorAll('[data-task-card]').forEach(function (card) {
+        var itemId = card.getAttribute('data-item-id');
+        var radios = card.querySelectorAll('.audit-yn input[type="radio"]');
+        var noteBlock = card.querySelector('[data-note-block]');
+        var noteTa = card.querySelector('[data-note-for]');
+
+        radios.forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                var status = radio.value;
+                if (noteBlock) noteBlock.hidden = (status !== 'Issue');
+                card.classList.add('chk-saving');
+                post('/api/checklist/' + subId + '/response', {
+                    taskItemId: parseInt(itemId, 10),
+                    status: status,
+                    notes: noteTa ? noteTa.value : null
+                }).then(function (r) {
+                    card.classList.remove('chk-saving');
+                    flash(card.querySelector('.audit-yn'), r.ok);
+                    if (!r.ok) alert((r.data && r.data.error) || 'Could not save — try again.');
+                });
+            });
+        });
+
+        if (noteTa) {
+            var t;
+            noteTa.addEventListener('input', function () {
+                clearTimeout(t);
+                t = setTimeout(function () {
+                    var checked = card.querySelector('.audit-yn input:checked');
+                    post('/api/checklist/' + subId + '/response', {
+                        taskItemId: parseInt(itemId, 10),
+                        status: checked ? checked.value : null,
+                        notes: noteTa.value
+                    });
+                }, 500);
+            });
+        }
+    });
+
+    // Checkpoints — toggle + save each tick with its timestamp.
+    wrap.querySelectorAll('.chk-cp').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var cpId = btn.getAttribute('data-cp-id');
+            var ticked = !btn.classList.contains('ticked');
+            btn.classList.add('chk-saving');
+            post('/api/checklist/' + subId + '/checkpoint', {
+                checkpointResponseId: parseInt(cpId, 10),
+                ticked: ticked
+            }).then(function (r) {
+                btn.classList.remove('chk-saving');
+                if (!r.ok) { alert((r.data && r.data.error) || 'Could not save — try again.'); return; }
+                btn.classList.toggle('ticked', ticked);
+                btn.setAttribute('aria-pressed', ticked ? 'true' : 'false');
+                var time = btn.querySelector('.chk-cp-time');
+                if (time) time.textContent = ticked ? (r.data.tickedAt || '') : '';
+                flash(btn, true);
+            });
+        });
+    });
+
+    // Header fields (auditor names, location) — save on blur.
+    wrap.querySelectorAll('[data-header]').forEach(function (ta) {
+        ta.addEventListener('blur', function () {
+            var names = wrap.querySelector('[data-header="auditorNames"]');
+            var loc = wrap.querySelector('[data-header="location"]');
+            post('/api/checklist/' + subId + '/header', {
+                auditorNames: names ? names.value : null,
+                location: loc ? loc.value : null
+            });
+        });
+    });
+
+    // Progress indicator — count answered (a status set, or a checkpoint task
+    // with at least one tick).
+    function updateProgress() {
+        var cards = wrap.querySelectorAll('[data-task-card]');
+        var done = 0;
+        cards.forEach(function (card) {
+            var checked = card.querySelector('.audit-yn input:checked');
+            var anyCp = card.querySelector('.chk-cp.ticked');
+            if (checked || anyCp) done++;
+        });
+        var fill = wrap.querySelector('.audit-progress-fill');
+        var text = wrap.querySelector('.audit-progress-text');
+        var total = cards.length;
+        var pct = total ? Math.round((done / total) * 100) : 0;
+        if (fill) fill.style.width = pct + '%';
+        if (text) text.textContent = done + '/' + total;
+    }
+    wrap.addEventListener('change', updateProgress);
+    wrap.addEventListener('click', function (e) {
+        if (e.target.closest('.chk-cp')) setTimeout(updateProgress, 50);
+    });
+    updateProgress();
+
+    // Complete — server validates every issue has a note.
+    var completeBtn = document.getElementById('complete-btn');
+    var msg = document.getElementById('complete-msg');
+    if (completeBtn) {
+        completeBtn.addEventListener('click', function () {
+            completeBtn.disabled = true;
+            if (msg) msg.hidden = true;
+            post('/api/checklist/' + subId + '/complete', {}).then(function (r) {
+                if (r.ok) {
+                    window.location = '/Success?id=' + subId;
+                    return;
+                }
+                completeBtn.disabled = false;
+                if (msg) {
+                    var miss = (r.data && r.data.missingNotes) || [];
+                    msg.hidden = false;
+                    msg.textContent = miss.length
+                        ? 'Add a note to each issue before completing: ' + miss.length + ' outstanding.'
+                        : ((r.data && r.data.error) || 'Could not complete — try again.');
+                    // Highlight the missing note blocks.
+                    wrap.querySelectorAll('[data-task-card]').forEach(function (card) {
+                        var issue = card.querySelector('.ayn-n:checked');
+                        var note = card.querySelector('[data-note-for]');
+                        var block = card.querySelector('[data-note-block]');
+                        if (issue && note && !note.value.trim()) {
+                            if (block) block.classList.add('hour-incomplete');
+                        } else if (block) {
+                            block.classList.remove('hour-incomplete');
+                        }
+                    });
+                }
+            });
+        });
+    }
+})();
+</script>
+<form style="display:none">@Html.AntiForgeryToken()</form>
+}

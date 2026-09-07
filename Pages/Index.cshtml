@@ -1,0 +1,104 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Start a checklist";
+}
+
+<div class="welcome-wrap">
+    <div class="welcome-card">
+        <div class="welcome-name">Daily Safe Start Checklist</div>
+        <div class="welcome-time">Choose where you're working and open today's checklist</div>
+
+        @if (!string.IsNullOrEmpty(Model.Error))
+        {
+            <div class="err" style="text-align:center;margin-bottom:10px">@Model.Error</div>
+        }
+
+        <form method="post" class="start-form" id="start-form">
+            @Html.AntiForgeryToken()
+            <div class="sf-row">
+                <div class="fl">
+                    <label for="dept">Department</label>
+                    <select id="dept" required>
+                        <option value="">Select…</option>
+                        @foreach (var d in Model.Departments)
+                        {
+                            <option value="@d.Id">@d.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="fl">
+                    <label for="AreaId">Area</label>
+                    <select id="AreaId" name="AreaId" required disabled>
+                        <option value="">Select a department first…</option>
+                        @foreach (var d in Model.Departments)
+                        {
+                            foreach (var a in d.Areas.OrderBy(x => x.SortOrder).ThenBy(x => x.Name))
+                            {
+                                <option value="@a.Id" data-dept="@d.Id" hidden>@a.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="sf-row">
+                <div class="fl">
+                    <label for="ShiftId">Shift</label>
+                    <select id="ShiftId" name="ShiftId" required disabled>
+                        <option value="">Select a department first…</option>
+                        @foreach (var d in Model.Departments)
+                        {
+                            foreach (var s in d.Shifts.OrderBy(x => x.SortOrder).ThenBy(x => x.Name))
+                            {
+                                <option value="@s.Id" data-dept="@d.Id" hidden>@s.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="fl">
+                    <label for="ChecklistDate">Date</label>
+                    <input type="date" id="ChecklistDate" name="ChecklistDate"
+                           value="@Model.ChecklistDate.ToString("yyyy-MM-dd")" required>
+                </div>
+            </div>
+            <div class="fl" style="margin-bottom:14px">
+                <label for="AuditorNames">Auditor name(s)</label>
+                <input type="text" id="AuditorNames" name="AuditorNames"
+                       placeholder="Type your name — you can add more later" autocomplete="off">
+            </div>
+
+            <button type="submit" class="welcome-btn primary">Open checklist</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    (function () {
+        var dept = document.getElementById('dept');
+        var area = document.getElementById('AreaId');
+        var shift = document.getElementById('ShiftId');
+
+        function filter(sel, deptId) {
+            var hasOne = false;
+            Array.prototype.forEach.call(sel.options, function (opt) {
+                if (!opt.value) return;
+                var match = opt.getAttribute('data-dept') === deptId;
+                opt.hidden = !match;
+                if (match) hasOne = true;
+            });
+            sel.value = '';
+            sel.disabled = !deptId;
+            var first = sel.options[0];
+            if (first) first.textContent = deptId
+                ? (hasOne ? 'Select…' : 'None configured yet')
+                : 'Select a department first…';
+        }
+
+        dept.addEventListener('change', function () {
+            filter(area, dept.value);
+            filter(shift, dept.value);
+        });
+    })();
+</script>
+}

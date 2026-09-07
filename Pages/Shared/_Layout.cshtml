@@ -1,0 +1,51 @@
+@inject SupportAuditSystem.Services.UserService UserService
+@inject SupportAuditSystem.Services.AdminService AdminService
+@{
+    var user = UserService.GetCurrentUser();
+    var isAdmin = AdminService.IsAdmin();
+    var pg = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+    var isAdminArea = pg.StartsWith("/Admin");
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Audit System</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+</head>
+<body>
+
+<div class="topbar">
+    <div class="stripes">
+        <div class="st" style="background:#CC1F2C;width:22px"></div>
+        <div class="st" style="background:#9B1E8E;width:17px"></div>
+        <div class="st" style="background:#0066B2;width:12px"></div>
+        <div class="st" style="background:#00A651;width:9px"></div>
+    </div>
+    <div>
+        <div class="brand">RITTAL</div>
+        <div class="subbrand">Support Audit System</div>
+    </div>
+    <div class="topbar-right">
+        @if (!string.IsNullOrEmpty(user.DisplayName))
+        {
+            <div class="user-chip">@user.DisplayName</div>
+        }
+        <a class="tbtn @(pg == "/Index" ? "active" : "")" asp-page="/Index">Home</a>
+        <a class="tbtn @(pg == "/Completed" ? "active" : "")" asp-page="/Completed">Completed</a>
+        @if (isAdmin)
+        {
+            <a class="tbtn @(isAdminArea ? "active" : "")" asp-page="/Admin/Index">Admin</a>
+        }
+    </div>
+</div>
+
+<main class="app-main">
+@RenderBody()
+</main>
+
+<script src="~/js/site.js" asp-append-version="true"></script>
+@RenderSection("Scripts", required: false)
+</body>
+</html>
