@@ -51,6 +51,7 @@ builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<ChecklistService>();
 builder.Services.AddScoped<TaskListService>();
 builder.Services.AddScoped<PdfExportService>();
+builder.Services.AddScoped<RosterService>();
 
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {

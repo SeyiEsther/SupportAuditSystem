@@ -39,7 +39,12 @@ department, and a shift name is unique within its department.
 - **Checklist entry** — phone / iPad / laptop friendly. Single column, one task
   per card, Done/Issue as large side-by-side targets, notes expanding under an
   Issue, a running progress indicator, and **each tap saved immediately**.
-  Completion is blocked while any Issue has no note.
+  Completion is blocked while any Issue has no note. Time-boxed items that carry
+  a category (Dispatch's hourly checks) instead render as one combined grid
+  table — matching the Production Audit System's hourly check grid exactly:
+  colour-coded section rows, a Y/N answer per hour, notes revealed once an hour
+  is marked N. Checklists with HOD-escalation lines get an HOD sign-off picker,
+  drawn from the same HOD roster as the Production Audit System.
 - **Completed** — filterable by department, area, shift and date range, with an
   issue count per row.
 - **Admin** — full CRUD across departments, areas, shifts and task lists, with
@@ -63,15 +68,25 @@ Warehouse Audit spreadsheet. The source has no area or shift breakdown, so it
 creates a single *Warehouse* area and reuses the site's 1st/2nd/3rd/Continental
 nights shift pattern (as separate Dispatch-owned rows — nothing shared with
 Stores beyond the name), seeding the same 24-check audit identically across all
-four. The source instead varies by **category** (H&S / Quality / Performance /
-Morale), **cadence** (Hourly / Per Shift / Daily) and an escalation window with
-an accountable role (Senior Operator / HOD) — none of which have dedicated
-schema columns, so they're folded into each task's text, e.g. *"H&S (Hourly):
-Walkways, fire exits and emergency routes are clear. Checked by the Senior
-Operator; escalate to HOD immediately if not resolved."* Hourly-cadence checks
-(8 of the 24) are time-boxed with generic **Hour 1–Hour 8** checkpoints — the
-source gives no specific clock times, so none are invented; the checkpoint
-timestamp records when it was genuinely ticked, same as Stores.
+four. The source varies by **category** (H&S / Quality / Performance / Morale),
+**cadence** (Hourly / Per Shift / Daily) and an escalation window with an
+accountable role (Senior Operator / HOD) — each carried as its own structured
+column on `TaskItem` (`Category`, `Cadence`, `ResponsibleRole`, `EscalateToRole`,
+`EscalationWindow`), not folded into the task text, so admin can see, edit and
+reorder them like any other field. Hourly-cadence checks (8 of the 24) are
+time-boxed with generic **Hour 1–Hour 8** checkpoints — the source gives no
+specific clock times, so none are invented; the checkpoint timestamp records
+when it was genuinely ticked, same as Stores.
+
+A third migration (`AddCheckpointStatus`) adds a `Status` column to checkpoint
+responses so Dispatch's hourly checks can carry a genuine Y/N (Done/Issue)
+answer per hour, distinct from Stores' simple completion tick.
+
+A fourth migration seeds the **HOD roster** (`RosterPeople`, kind `Hod`) with
+the same five names as the Production Audit System's HOD list (George
+Thompson, Lukasz Jaworski, Alison Gilley, Piotr Pelka, Michael Tregillis),
+admin-editable like everything else, used for HOD sign-off on checklists whose
+task list carries an HOD escalation line.
 
 ## Auth & hosting
 

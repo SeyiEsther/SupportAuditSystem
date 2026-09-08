@@ -148,6 +148,38 @@ namespace SupportAuditSystem.Services
             return new SaveResult(true, null);
         }
 
+        // Grid-style hourly checks (e.g. Dispatch's Warehouse Audit) — a real
+        // Y/N answer per hour, not just a completion tick.
+        public async Task<SaveResult> SaveCheckpointStatusAsync(int submissionId, int checkpointResponseId, string status, AppUser user)
+        {
+            status = status switch
+            {
+                Models.TaskStatus.Done => Models.TaskStatus.Done,
+                Models.TaskStatus.Issue => Models.TaskStatus.Issue,
+                _ => throw new ArgumentException("status must be Done or Issue", nameof(status)),
+            };
+
+            var cp = await _db.CheckpointResponses
+                .Include(c => c.TaskResponse)
+                .FirstOrDefaultAsync(c => c.Id == checkpointResponseId && c.TaskResponse!.ChecklistSubmissionId == submissionId);
+            if (cp == null)
+                return new SaveResult(false, "That checkpoint is not part of this checklist.");
+
+            cp.Status = status;
+            cp.Ticked = true;
+            cp.TickedAt = DateTime.UtcNow;
+            if (cp.TaskResponse != null) cp.TaskResponse.UpdatedAt = DateTime.UtcNow;
+
+            await TouchAsync(submissionId, user);
+            try { await _db.SaveChangesAsync(); }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Save checkpoint status failed sub {Sub} cp {Cp}", submissionId, checkpointResponseId);
+                return new SaveResult(false, "Could not save. Try again.");
+            }
+            return new SaveResult(true, null);
+        }
+
         public async Task<SaveResult> SaveHeaderAsync(int submissionId, string? auditorNames, string? location, AppUser user)
         {
             var sub = await _db.ChecklistSubmissions.FirstOrDefaultAsync(s => s.Id == submissionId);
@@ -165,19 +197,39 @@ namespace SupportAuditSystem.Services
             return new SaveResult(true, null);
         }
 
-        // Completion is blocked while any Issue response has no note.
+        public async Task<SaveResult> SaveHodSignOffAsync(int submissionId, string? hodName)
+        {
+            var sub = await _db.ChecklistSubmissions.FirstOrDefaultAsync(s => s.Id == submissionId);
+            if (sub == null) return new SaveResult(false, "Checklist not found.");
+
+            hodName = string.IsNullOrWhiteSpace(hodName) ? null : hodName.Trim();
+            sub.HodSignOffName = hodName;
+            sub.HodSignOffAt = hodName == null ? null : DateTime.UtcNow;
+            try { await _db.SaveChangesAsync(); }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Save HOD sign-off failed sub {Sub}", submissionId);
+                return new SaveResult(false, "Could not save. Try again.");
+            }
+            return new SaveResult(true, null);
+        }
+
+        // Completion is blocked while any Issue response — or, for grid-style
+        // hourly checks, any Issue answer at any hour — has no note.
         public async Task<CompleteResult> CompleteAsync(int submissionId, AppUser user)
         {
             var sub = await _db.ChecklistSubmissions
                 .Include(s => s.TaskList).ThenInclude(t => t!.Items)
-                .Include(s => s.Responses)
+                .Include(s => s.Responses).ThenInclude(r => r.CheckpointResponses)
                 .FirstOrDefaultAsync(s => s.Id == submissionId);
             if (sub == null)
                 return new CompleteResult(false, Array.Empty<string>(), "Checklist not found.");
 
             var itemsById = sub.TaskList!.Items.ToDictionary(i => i.Id);
             var missing = sub.Responses
-                .Where(r => r.Status == Models.TaskStatus.Issue && string.IsNullOrWhiteSpace(r.Notes))
+                .Where(r =>
+                    (r.Status == Models.TaskStatus.Issue && string.IsNullOrWhiteSpace(r.Notes)) ||
+                    (r.CheckpointResponses.Any(c => c.Status == Models.TaskStatus.Issue) && string.IsNullOrWhiteSpace(r.Notes)))
                 .Select(r => itemsById.TryGetValue(r.TaskItemId, out var it) ? it.Text : "(task)")
                 .ToList();
             if (missing.Count > 0)

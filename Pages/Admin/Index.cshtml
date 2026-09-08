@@ -150,4 +150,33 @@
             }
         </div>
     }
+
+    <div class="card">
+        <div class="card-head">
+            <div class="card-title">HOD roster</div>
+            <div class="card-sub">@Model.HodRoster.Count name(s) — used for HOD sign-off on checklists (e.g. Dispatch's Warehouse Audit)</div>
+        </div>
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border)">
+            @foreach (var p in Model.HodRoster)
+            {
+                <form method="post" asp-page-handler="RemoveHod" style="display:inline-flex;align-items:center;gap:6px;margin:0 8px 8px 0">
+                    <input type="hidden" name="id" value="@p.Id">
+                    <span class="rv u" style="display:inline-flex;align-items:center;gap:6px">
+                        @p.Name
+                        <button type="submit" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px"
+                                onclick="return confirm('Remove @p.Name from the HOD roster?')">✕</button>
+                    </span>
+                </form>
+            }
+            @if (!Model.HodRoster.Any())
+            {
+                <div class="empty">No HOD names yet.</div>
+            }
+        </div>
+        <form method="post" asp-page-handler="AddHod" class="filters">
+            <div class="ff"><span class="ff-label">Add HOD</span><div class="ff-control">
+                <input name="name" class="ff-input" style="padding-left:12px" placeholder="Full name…" required></div></div>
+            <div class="filter-actions"><button class="sbtn filter-apply" type="submit">Add</button></div>
+        </form>
+    </div>
 </div>

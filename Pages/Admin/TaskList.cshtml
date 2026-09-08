@@ -69,6 +69,16 @@
                 </label>
                 <input class="ff-input tl-checkpoints" style="padding-left:12px;display:none"
                        placeholder="Checkpoints, comma-separated — e.g. 9am, 11am, 1pm, 3pm">
+                <details class="tl-accountability">
+                    <summary style="cursor:pointer;font-size:12px;color:var(--muted);font-weight:600">Category, cadence &amp; accountability (optional)</summary>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+                        <input class="ff-input tl-category" style="padding-left:12px" placeholder="Category — e.g. H&amp;S">
+                        <input class="ff-input tl-cadence" style="padding-left:12px" placeholder="Cadence — e.g. Hourly">
+                        <input class="ff-input tl-role" style="padding-left:12px" placeholder="Checked by — e.g. Senior Operator">
+                        <input class="ff-input tl-escalate" style="padding-left:12px" placeholder="Escalate to — e.g. HOD">
+                        <input class="ff-input tl-window" style="padding-left:12px;grid-column:1/-1" placeholder="Escalation window — e.g. immediately">
+                    </div>
+                </details>
             </div>
             <button type="button" class="sbtn sm tl-remove" style="color:var(--red-text)" title="Remove">✕</button>
         </div>
@@ -81,7 +91,9 @@
     var seed = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(items.Select(i => new {
         text = i.Text,
         isTimeBoxed = i.IsTimeBoxed,
-        checkpoints = i.Checkpoints.OrderBy(c => c.SortOrder).Select(c => c.Label).ToList()
+        checkpoints = i.Checkpoints.OrderBy(c => c.SortOrder).Select(c => c.Label).ToList(),
+        category = i.Category, cadence = i.Cadence,
+        responsibleRole = i.ResponsibleRole, escalateToRole = i.EscalateToRole, escalationWindow = i.EscalationWindow
     })));
 
     var container = document.getElementById('items');
@@ -99,6 +111,16 @@
         tb.checked = !!(data && data.isTimeBoxed);
         cps.value = data && data.checkpoints ? data.checkpoints.join(', ') : '';
         cps.style.display = tb.checked ? 'block' : 'none';
+
+        var cat = node.querySelector('.tl-category'), cad = node.querySelector('.tl-cadence');
+        var role = node.querySelector('.tl-role'), esc = node.querySelector('.tl-escalate'), win = node.querySelector('.tl-window');
+        cat.value = (data && data.category) || '';
+        cad.value = (data && data.cadence) || '';
+        role.value = (data && data.responsibleRole) || '';
+        esc.value = (data && data.escalateToRole) || '';
+        win.value = (data && data.escalationWindow) || '';
+        if (cat.value || cad.value || role.value || esc.value || win.value)
+            node.querySelector('.tl-accountability').setAttribute('open', '');
 
         tb.addEventListener('change', function () { cps.style.display = tb.checked ? 'block' : 'none'; });
         node.querySelector('.tl-remove').addEventListener('click', function () { node.remove(); refreshEmpty(); });
@@ -126,7 +148,14 @@
             var tb = row.querySelector('.tl-timeboxed').checked;
             var cps = row.querySelector('.tl-checkpoints').value
                 .split(',').map(function (x) { return x.trim(); }).filter(Boolean);
-            rows.push({ text: text, isTimeBoxed: tb && cps.length > 0, checkpoints: cps });
+            rows.push({
+                text: text, isTimeBoxed: tb && cps.length > 0, checkpoints: cps,
+                category: row.querySelector('.tl-category').value.trim() || null,
+                cadence: row.querySelector('.tl-cadence').value.trim() || null,
+                responsibleRole: row.querySelector('.tl-role').value.trim() || null,
+                escalateToRole: row.querySelector('.tl-escalate').value.trim() || null,
+                escalationWindow: row.querySelector('.tl-window').value.trim() || null
+            });
         });
         document.getElementById('ItemsJson').value = JSON.stringify(rows);
     });

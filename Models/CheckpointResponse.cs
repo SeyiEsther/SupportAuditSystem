@@ -14,5 +14,10 @@ namespace SupportAuditSystem.Models
 
         public bool Ticked { get; set; }
         public DateTime? TickedAt { get; set; }
+
+        // Set only for grid-style hourly checks (e.g. Dispatch's Warehouse
+        // Audit) where each hour needs a real Y/N answer, not just a completion
+        // tick — Stores' simple tick-per-checkpoint items leave this null.
+        public string? Status { get; set; }
     }
 }

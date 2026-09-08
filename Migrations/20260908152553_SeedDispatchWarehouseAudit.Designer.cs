@@ -12,7 +12,7 @@ using SupportAuditSystem.Data;
 namespace SupportAuditSystem.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260908122834_SeedDispatchWarehouseAudit")]
+    [Migration("20260908152553_SeedDispatchWarehouseAudit")]
     partial class SeedDispatchWarehouseAudit
     {
         /// <inheritdoc />
@@ -86,6 +86,13 @@ namespace SupportAuditSystem.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime?>("HodSignOffAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("HodSignOffName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
@@ -174,6 +181,38 @@ namespace SupportAuditSystem.Migrations
                     b.ToTable("Departments");
                 });
 
+            modelBuilder.Entity("SupportAuditSystem.Models.RosterPerson", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ListKind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListKind", "Name")
+                        .IsUnique();
+
+                    b.ToTable("RosterPeople");
+                });
+
             modelBuilder.Entity("SupportAuditSystem.Models.Shift", b =>
                 {
                     b.Property<int>("Id")
@@ -238,8 +277,28 @@ namespace SupportAuditSystem.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Cadence")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("EscalateToRole")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("EscalationWindow")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<bool>("IsTimeBoxed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("ResponsibleRole")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");

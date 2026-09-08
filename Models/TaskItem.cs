@@ -18,6 +18,17 @@ namespace SupportAuditSystem.Models
         public string Text { get; set; } = "";
         public int SortOrder { get; set; }
 
+        // Optional structured accountability — who checks this line, who it
+        // escalates to if it fails, and on what timescale. Admin-typed free text
+        // (never a hard-coded set), shown as badges on the entry screen and in
+        // the PDF rather than folded into Text, so it stays queryable/renderable
+        // on its own. Null for lines that don't carry this (e.g. Stores' items).
+        public string? Category { get; set; }
+        public string? Cadence { get; set; }
+        public string? ResponsibleRole { get; set; }
+        public string? EscalateToRole { get; set; }
+        public string? EscalationWindow { get; set; }
+
         public bool IsTimeBoxed { get; set; }
         public List<TaskCheckpoint> Checkpoints { get; set; } = new();
     }

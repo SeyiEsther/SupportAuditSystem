@@ -20,6 +20,7 @@ namespace SupportAuditSystem.Data
         public DbSet<ChecklistSubmission> ChecklistSubmissions => Set<ChecklistSubmission>();
         public DbSet<TaskResponse> TaskResponses => Set<TaskResponse>();
         public DbSet<CheckpointResponse> CheckpointResponses => Set<CheckpointResponse>();
+        public DbSet<RosterPerson> RosterPeople => Set<RosterPerson>();
 
         protected override void OnModelCreating(ModelBuilder mb)
         {
@@ -68,6 +69,11 @@ namespace SupportAuditSystem.Data
             mb.Entity<TaskItem>(e =>
             {
                 e.Property(i => i.Text).HasColumnType("nvarchar(max)");
+                e.Property(i => i.Category).HasMaxLength(100);
+                e.Property(i => i.Cadence).HasMaxLength(100);
+                e.Property(i => i.ResponsibleRole).HasMaxLength(100);
+                e.Property(i => i.EscalateToRole).HasMaxLength(100);
+                e.Property(i => i.EscalationWindow).HasMaxLength(100);
                 e.HasMany(i => i.Checkpoints).WithOne(c => c.TaskItem!)
                  .HasForeignKey(c => c.TaskItemId).OnDelete(DeleteBehavior.Cascade);
             });
@@ -84,6 +90,7 @@ namespace SupportAuditSystem.Data
                 e.Property(s => s.CreatedBy).HasMaxLength(256);
                 e.Property(s => s.LastEditedBy).HasMaxLength(256);
                 e.Property(s => s.CompletedBy).HasMaxLength(256);
+                e.Property(s => s.HodSignOffName).HasMaxLength(256);
                 e.HasOne(s => s.Area).WithMany()
                  .HasForeignKey(s => s.AreaId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(s => s.Shift).WithMany()
@@ -111,8 +118,16 @@ namespace SupportAuditSystem.Data
 
             mb.Entity<CheckpointResponse>(e =>
             {
+                e.Property(c => c.Status).HasMaxLength(20);
                 e.HasOne(c => c.TaskCheckpoint).WithMany()
                  .HasForeignKey(c => c.TaskCheckpointId).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            mb.Entity<RosterPerson>(e =>
+            {
+                e.Property(p => p.ListKind).HasMaxLength(40);
+                e.Property(p => p.Name).HasMaxLength(200);
+                e.HasIndex(p => new { p.ListKind, p.Name }).IsUnique();
             });
         }
     }

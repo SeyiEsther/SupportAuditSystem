@@ -22,7 +22,9 @@ namespace SupportAuditSystem.Controllers
 
         public record ResponseDto(int TaskItemId, string? Status, string? Notes);
         public record CheckpointDto(int CheckpointResponseId, bool Ticked);
+        public record CheckpointStatusDto(int CheckpointResponseId, string Status);
         public record HeaderDto(string? AuditorNames, string? Location);
+        public record HodSignOffDto(string? HodName);
 
         [HttpPost("{id:int}/response")]
         [ValidateAntiForgeryToken]
@@ -41,12 +43,36 @@ namespace SupportAuditSystem.Controllers
             return Ok(new { ok = true, tickedAt = dto.Ticked ? DateTime.Now.ToString("HH:mm") : "" });
         }
 
+        [HttpPost("{id:int}/checkpoint-status")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveCheckpointStatus(int id, [FromBody] CheckpointStatusDto dto)
+        {
+            try
+            {
+                var r = await _checklists.SaveCheckpointStatusAsync(id, dto.CheckpointResponseId, dto.Status, _users.GetCurrentUser());
+                return r.Ok ? Ok(new { ok = true, tickedAt = DateTime.Now.ToString("HH:mm") }) : BadRequest(new { ok = false, error = r.Error });
+            }
+            catch (ArgumentException)
+            {
+                return BadRequest(new { ok = false, error = "Status must be Done or Issue." });
+            }
+        }
+
         [HttpPost("{id:int}/header")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveHeader(int id, [FromBody] HeaderDto dto)
         {
             var r = await _checklists.SaveHeaderAsync(id, dto.AuditorNames, dto.Location, _users.GetCurrentUser());
             return r.Ok ? Ok(new { ok = true }) : BadRequest(new { ok = false, error = r.Error });
+        }
+
+        [HttpPost("{id:int}/hodsignoff")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveHodSignOff(int id, [FromBody] HodSignOffDto dto)
+        {
+            var r = await _checklists.SaveHodSignOffAsync(id, dto.HodName);
+            if (!r.Ok) return BadRequest(new { ok = false, error = r.Error });
+            return Ok(new { ok = true, signedAt = DateTime.Now.ToString("dd MMM HH:mm") });
         }
 
         [HttpPost("{id:int}/complete")]

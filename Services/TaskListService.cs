@@ -11,6 +11,14 @@ namespace SupportAuditSystem.Services
         public bool IsTimeBoxed { get; set; }
         // Checkpoint labels in order, e.g. ["9am","11am","1pm","3pm"].
         public List<string> Checkpoints { get; set; } = new();
+
+        // Optional structured accountability — admin-typed free text, never a
+        // hard-coded set (see TaskItem.Category etc.).
+        public string? Category { get; set; }
+        public string? Cadence { get; set; }
+        public string? ResponsibleRole { get; set; }
+        public string? EscalateToRole { get; set; }
+        public string? EscalationWindow { get; set; }
     }
 
     // Owns task-list versioning. A task list belongs to an Area + Shift. Editing a
@@ -84,11 +92,17 @@ namespace SupportAuditSystem.Services
             int order = 0;
             foreach (var edit in items)
             {
+                static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
                 var item = new TaskItem
                 {
                     Text = edit.Text.Trim(),
                     SortOrder = order++,
                     IsTimeBoxed = edit.IsTimeBoxed && edit.Checkpoints.Any(c => !string.IsNullOrWhiteSpace(c)),
+                    Category = Clean(edit.Category),
+                    Cadence = Clean(edit.Cadence),
+                    ResponsibleRole = Clean(edit.ResponsibleRole),
+                    EscalateToRole = Clean(edit.EscalateToRole),
+                    EscalationWindow = Clean(edit.EscalationWindow),
                 };
                 if (item.IsTimeBoxed)
                 {

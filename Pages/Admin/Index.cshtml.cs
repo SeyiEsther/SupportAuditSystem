@@ -11,16 +11,19 @@ namespace SupportAuditSystem.Pages.Admin
     {
         private readonly AppDbContext _db;
         private readonly AdminService _admin;
+        private readonly RosterService _roster;
 
-        public IndexModel(AppDbContext db, AdminService admin)
+        public IndexModel(AppDbContext db, AdminService admin, RosterService roster)
         {
             _db = db;
             _admin = admin;
+            _roster = roster;
         }
 
         public List<Department> Departments { get; set; } = new();
         // Which area+shift pairs already have a current task list, and its size.
         public Dictionary<(int AreaId, int ShiftId), (int Version, int Items)> TaskListInfo { get; set; } = new();
+        public List<RosterPerson> HodRoster { get; set; } = new();
         public string? Notice { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
@@ -133,6 +136,21 @@ namespace SupportAuditSystem.Pages.Admin
             return RedirectToPage();
         }
 
+        // ── HOD roster ──────────────────────────────────────────────
+        public async Task<IActionResult> OnPostAddHodAsync(string name)
+        {
+            if (!_admin.IsAdmin()) return Forbid();
+            await _roster.AddAsync(RosterKinds.Hod, name);
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostRemoveHodAsync(int id)
+        {
+            if (!_admin.IsAdmin()) return Forbid();
+            await _roster.RemoveAsync(id);
+            return RedirectToPage();
+        }
+
         private async Task SaveGuardedAsync()
         {
             try { await _db.SaveChangesAsync(); }
@@ -152,6 +170,7 @@ namespace SupportAuditSystem.Pages.Admin
                 .Select(t => new { t.AreaId, t.ShiftId, t.Version, Items = t.Items.Count })
                 .ToListAsync();
             TaskListInfo = lists.ToDictionary(x => (x.AreaId, x.ShiftId), x => (x.Version, x.Items));
+            HodRoster = await _roster.GetAllAsync(RosterKinds.Hod);
             Notice = TempData["Notice"] as string;
         }
     }

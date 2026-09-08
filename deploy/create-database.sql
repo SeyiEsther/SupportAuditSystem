@@ -8,11 +8,14 @@
      1. the RittalSupportSW database (if missing),
      2. the db_Public_User login/user the app connects as,
      3. the full schema (tables, keys, indexes),
-     4. the Stores + Dispatch seed data (verbatim task lists, SHEF014,
+     4. the Stores + Dispatch seed data — verbatim task lists, SHEF014,
         plus Dispatch's Warehouse Audit transcribed from the supplied
         spreadsheet: 24 checks across H&S/Quality/Performance/Morale,
+        each carrying its own category, cadence, accountable role and
+        escalation window as structured columns (not folded into text),
         seeded identically across Dispatch's 1st/2nd/3rd/Continental
-        nights shifts),
+        nights shifts, plus the HOD roster (same 5 names as the
+        Production Audit System's HOD list) used for HOD sign-off,
      5. the EF migration-history rows, so the app's startup migration
         sees everything as already applied and makes no further changes.
 
@@ -563,7 +566,111 @@ GO
 
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
-    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+    WHERE [MigrationId] = N'20260908110000_AddDispatchAccountability'
+)
+BEGIN
+    ALTER TABLE [TaskItems] ADD [Cadence] nvarchar(100) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908110000_AddDispatchAccountability'
+)
+BEGIN
+    ALTER TABLE [TaskItems] ADD [Category] nvarchar(100) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908110000_AddDispatchAccountability'
+)
+BEGIN
+    ALTER TABLE [TaskItems] ADD [EscalateToRole] nvarchar(100) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908110000_AddDispatchAccountability'
+)
+BEGIN
+    ALTER TABLE [TaskItems] ADD [EscalationWindow] nvarchar(100) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908110000_AddDispatchAccountability'
+)
+BEGIN
+    ALTER TABLE [TaskItems] ADD [ResponsibleRole] nvarchar(100) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908110000_AddDispatchAccountability'
+)
+BEGIN
+    ALTER TABLE [ChecklistSubmissions] ADD [HodSignOffAt] datetime2 NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908110000_AddDispatchAccountability'
+)
+BEGIN
+    ALTER TABLE [ChecklistSubmissions] ADD [HodSignOffName] nvarchar(256) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908110000_AddDispatchAccountability'
+)
+BEGIN
+    CREATE TABLE [RosterPeople] (
+        [Id] int NOT NULL IDENTITY,
+        [ListKind] nvarchar(40) NOT NULL,
+        [Name] nvarchar(200) NOT NULL,
+        [SortOrder] int NOT NULL,
+        [IsActive] bit NOT NULL,
+        CONSTRAINT [PK_RosterPeople] PRIMARY KEY ([Id])
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908110000_AddDispatchAccountability'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_RosterPeople_ListKind_Name] ON [RosterPeople] ([ListKind], [Name]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908110000_AddDispatchAccountability'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260908110000_AddDispatchAccountability', N'8.0.0');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908152553_SeedDispatchWarehouseAudit'
 )
 BEGIN
     IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'DepartmentId', N'Name', N'DefaultLocation', N'SortOrder', N'IsActive') AND [object_id] = OBJECT_ID(N'[Areas]'))
@@ -577,7 +684,7 @@ GO
 
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
-    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+    WHERE [MigrationId] = N'20260908152553_SeedDispatchWarehouseAudit'
 )
 BEGIN
     IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'DepartmentId', N'Name', N'SortOrder', N'IsActive') AND [object_id] = OBJECT_ID(N'[Shifts]'))
@@ -594,7 +701,7 @@ GO
 
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
-    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+    WHERE [MigrationId] = N'20260908152553_SeedDispatchWarehouseAudit'
 )
 BEGIN
     IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'AreaId', N'ShiftId', N'Version', N'IsCurrent', N'HealthRepsReminder', N'CreatedAt', N'CreatedBy') AND [object_id] = OBJECT_ID(N'[TaskLists]'))
@@ -611,118 +718,118 @@ GO
 
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
-    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+    WHERE [MigrationId] = N'20260908152553_SeedDispatchWarehouseAudit'
 )
 BEGIN
-    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'TaskListId', N'Text', N'SortOrder', N'IsTimeBoxed') AND [object_id] = OBJECT_ID(N'[TaskItems]'))
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'TaskListId', N'Text', N'SortOrder', N'IsTimeBoxed', N'Category', N'Cadence', N'ResponsibleRole', N'EscalateToRole', N'EscalationWindow') AND [object_id] = OBJECT_ID(N'[TaskItems]'))
         SET IDENTITY_INSERT [TaskItems] ON;
-    EXEC(N'INSERT INTO [TaskItems] ([Id], [TaskListId], [Text], [SortOrder], [IsTimeBoxed])
-    VALUES (53, 9, N''H&S (Hourly): Walkways, fire exits and emergency routes are clear. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 0, CAST(1 AS bit)),
-    (54, 9, N''H&S (Hourly): PPE requirements are being followed. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 1, CAST(1 AS bit)),
-    (55, 9, N''H&S (Hourly): No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor). Checked by the Senior Operator; resolve immediately.'', 2, CAST(1 AS bit)),
-    (56, 9, N''H&S (Hourly): Loading bays, dock levellers and vehicle Security is safe (Rite Height). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 3, CAST(1 AS bit)),
-    (57, 9, N''Quality (Hourly): Correct product, quantity and destination are being picked (Bay Sheets). Checked by the Senior Operator; resolve within the same shift.'', 4, CAST(1 AS bit)),
-    (58, 9, N''Quality (Hourly): Labels, paperwork and scanning are accurate (Check Scanner V Loading). Checked by the Senior Operator; resolve within the same shift.'', 5, CAST(1 AS bit)),
-    (59, 9, N''Performance (Hourly): Picking and despatch activity is on plan. Checked by the Senior Operator; resolve within the same shift.'', 6, CAST(1 AS bit)),
-    (60, 9, N''Performance (Hourly): Bottlenecks, downtime and waiting vehicles are controlled. Checked by the Senior Operator; resolve within the same shift.'', 7, CAST(1 AS bit)),
-    (61, 9, N''H&S (Per Shift): Pre-use equipment checks are completed and defects reported (Check Booklets). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 8, CAST(0 AS bit)),
-    (62, 9, N''H&S (Per Shift): Spill kits, first-aid and fire points are accessible. Checked by the Senior Operator; resolve immediately.'', 9, CAST(0 AS bit)),
-    (63, 9, N''H&S (Per Shift): Pedestrian and MHE segregation controls are effective. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 10, CAST(0 AS bit)),
-    (64, 9, N''Quality (Per Shift): Packaging standards and load security are acceptable. Checked by the Senior Operator; resolve within the same shift.'', 11, CAST(0 AS bit)),
-    (65, 9, N''Quality (Per Shift): Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card. Checked by the Senior Operator; resolve within the same shift.'', 12, CAST(0 AS bit)),
-    (66, 9, N''Quality (Per Shift): FIFO/stock rotation requirements are followed where applicable (New). Checked by the Senior Operator; resolve within the same shift.'', 13, CAST(0 AS bit)),
-    (67, 9, N''Performance (Per Shift): Shift plan, priorities and cut-off times were communicated (Shift Start Up). Checked by the HOD; resolve within the same shift.'', 14, CAST(0 AS bit)),
-    (68, 9, N''Performance (Per Shift): Labour and equipment resources are adequate for the plan. Checked by the Senior Operator; resolve within the same shift.'', 15, CAST(0 AS bit)),
-    (69, 9, N''Performance (Per Shift): Shift KPIs, backlog and carry-over work were reviewed (RPS). Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 16, CAST(0 AS bit)),
-    (70, 9, N''Morale (Per Shift): Team brief and safety message were completed ( Start of Each Shift Team Brief). Checked by the HOD; resolve within the same shift.'', 17, CAST(0 AS bit)),
-    (71, 9, N''Morale (Per Shift): Team concerns, support needs and training gaps were discussed. Checked by the HOD; resolve by the next shift.'', 18, CAST(0 AS bit)),
-    (72, 9, N''Morale (Per Shift): Good performance and positive behaviours were recognised. Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 19, CAST(0 AS bit)),
-    (73, 9, N''H&S (Daily): General housekeeping and waste controls meet standard. Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 20, CAST(0 AS bit)),
-    (74, 9, N''Quality (Daily): A sample of completed orders was checked for accuracy ( PickList V Shipping Documents). Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 21, CAST(0 AS bit)),
-    (75, 9, N''Performance (Daily): Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows). Checked by the Senior Operator; resolve within the same day.'', 22, CAST(0 AS bit)),
-    (76, 9, N''Morale (Daily): Absence, overtime, workload and welfare concerns were reviewed. Checked by the HOD; resolve within the same day.'', 23, CAST(0 AS bit)),
-    (77, 10, N''H&S (Hourly): Walkways, fire exits and emergency routes are clear. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 0, CAST(1 AS bit)),
-    (78, 10, N''H&S (Hourly): PPE requirements are being followed. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 1, CAST(1 AS bit)),
-    (79, 10, N''H&S (Hourly): No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor). Checked by the Senior Operator; resolve immediately.'', 2, CAST(1 AS bit)),
-    (80, 10, N''H&S (Hourly): Loading bays, dock levellers and vehicle Security is safe (Rite Height). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 3, CAST(1 AS bit)),
-    (81, 10, N''Quality (Hourly): Correct product, quantity and destination are being picked (Bay Sheets). Checked by the Senior Operator; resolve within the same shift.'', 4, CAST(1 AS bit)),
-    (82, 10, N''Quality (Hourly): Labels, paperwork and scanning are accurate (Check Scanner V Loading). Checked by the Senior Operator; resolve within the same shift.'', 5, CAST(1 AS bit)),
-    (83, 10, N''Performance (Hourly): Picking and despatch activity is on plan. Checked by the Senior Operator; resolve within the same shift.'', 6, CAST(1 AS bit)),
-    (84, 10, N''Performance (Hourly): Bottlenecks, downtime and waiting vehicles are controlled. Checked by the Senior Operator; resolve within the same shift.'', 7, CAST(1 AS bit)),
-    (85, 10, N''H&S (Per Shift): Pre-use equipment checks are completed and defects reported (Check Booklets). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 8, CAST(0 AS bit)),
-    (86, 10, N''H&S (Per Shift): Spill kits, first-aid and fire points are accessible. Checked by the Senior Operator; resolve immediately.'', 9, CAST(0 AS bit)),
-    (87, 10, N''H&S (Per Shift): Pedestrian and MHE segregation controls are effective. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 10, CAST(0 AS bit)),
-    (88, 10, N''Quality (Per Shift): Packaging standards and load security are acceptable. Checked by the Senior Operator; resolve within the same shift.'', 11, CAST(0 AS bit)),
-    (89, 10, N''Quality (Per Shift): Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card. Checked by the Senior Operator; resolve within the same shift.'', 12, CAST(0 AS bit)),
-    (90, 10, N''Quality (Per Shift): FIFO/stock rotation requirements are followed where applicable (New). Checked by the Senior Operator; resolve within the same shift.'', 13, CAST(0 AS bit)),
-    (91, 10, N''Performance (Per Shift): Shift plan, priorities and cut-off times were communicated (Shift Start Up). Checked by the HOD; resolve within the same shift.'', 14, CAST(0 AS bit)),
-    (92, 10, N''Performance (Per Shift): Labour and equipment resources are adequate for the plan. Checked by the Senior Operator; resolve within the same shift.'', 15, CAST(0 AS bit)),
-    (93, 10, N''Performance (Per Shift): Shift KPIs, backlog and carry-over work were reviewed (RPS). Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 16, CAST(0 AS bit)),
-    (94, 10, N''Morale (Per Shift): Team brief and safety message were completed ( Start of Each Shift Team Brief). Checked by the HOD; resolve within the same shift.'', 17, CAST(0 AS bit));
-    INSERT INTO [TaskItems] ([Id], [TaskListId], [Text], [SortOrder], [IsTimeBoxed])
-    VALUES (95, 10, N''Morale (Per Shift): Team concerns, support needs and training gaps were discussed. Checked by the HOD; resolve by the next shift.'', 18, CAST(0 AS bit)),
-    (96, 10, N''Morale (Per Shift): Good performance and positive behaviours were recognised. Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 19, CAST(0 AS bit)),
-    (97, 10, N''H&S (Daily): General housekeeping and waste controls meet standard. Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 20, CAST(0 AS bit)),
-    (98, 10, N''Quality (Daily): A sample of completed orders was checked for accuracy ( PickList V Shipping Documents). Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 21, CAST(0 AS bit)),
-    (99, 10, N''Performance (Daily): Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows). Checked by the Senior Operator; resolve within the same day.'', 22, CAST(0 AS bit)),
-    (100, 10, N''Morale (Daily): Absence, overtime, workload and welfare concerns were reviewed. Checked by the HOD; resolve within the same day.'', 23, CAST(0 AS bit)),
-    (101, 11, N''H&S (Hourly): Walkways, fire exits and emergency routes are clear. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 0, CAST(1 AS bit)),
-    (102, 11, N''H&S (Hourly): PPE requirements are being followed. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 1, CAST(1 AS bit)),
-    (103, 11, N''H&S (Hourly): No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor). Checked by the Senior Operator; resolve immediately.'', 2, CAST(1 AS bit)),
-    (104, 11, N''H&S (Hourly): Loading bays, dock levellers and vehicle Security is safe (Rite Height). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 3, CAST(1 AS bit)),
-    (105, 11, N''Quality (Hourly): Correct product, quantity and destination are being picked (Bay Sheets). Checked by the Senior Operator; resolve within the same shift.'', 4, CAST(1 AS bit)),
-    (106, 11, N''Quality (Hourly): Labels, paperwork and scanning are accurate (Check Scanner V Loading). Checked by the Senior Operator; resolve within the same shift.'', 5, CAST(1 AS bit)),
-    (107, 11, N''Performance (Hourly): Picking and despatch activity is on plan. Checked by the Senior Operator; resolve within the same shift.'', 6, CAST(1 AS bit)),
-    (108, 11, N''Performance (Hourly): Bottlenecks, downtime and waiting vehicles are controlled. Checked by the Senior Operator; resolve within the same shift.'', 7, CAST(1 AS bit)),
-    (109, 11, N''H&S (Per Shift): Pre-use equipment checks are completed and defects reported (Check Booklets). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 8, CAST(0 AS bit)),
-    (110, 11, N''H&S (Per Shift): Spill kits, first-aid and fire points are accessible. Checked by the Senior Operator; resolve immediately.'', 9, CAST(0 AS bit)),
-    (111, 11, N''H&S (Per Shift): Pedestrian and MHE segregation controls are effective. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 10, CAST(0 AS bit)),
-    (112, 11, N''Quality (Per Shift): Packaging standards and load security are acceptable. Checked by the Senior Operator; resolve within the same shift.'', 11, CAST(0 AS bit)),
-    (113, 11, N''Quality (Per Shift): Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card. Checked by the Senior Operator; resolve within the same shift.'', 12, CAST(0 AS bit)),
-    (114, 11, N''Quality (Per Shift): FIFO/stock rotation requirements are followed where applicable (New). Checked by the Senior Operator; resolve within the same shift.'', 13, CAST(0 AS bit)),
-    (115, 11, N''Performance (Per Shift): Shift plan, priorities and cut-off times were communicated (Shift Start Up). Checked by the HOD; resolve within the same shift.'', 14, CAST(0 AS bit)),
-    (116, 11, N''Performance (Per Shift): Labour and equipment resources are adequate for the plan. Checked by the Senior Operator; resolve within the same shift.'', 15, CAST(0 AS bit)),
-    (117, 11, N''Performance (Per Shift): Shift KPIs, backlog and carry-over work were reviewed (RPS). Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 16, CAST(0 AS bit)),
-    (118, 11, N''Morale (Per Shift): Team brief and safety message were completed ( Start of Each Shift Team Brief). Checked by the HOD; resolve within the same shift.'', 17, CAST(0 AS bit)),
-    (119, 11, N''Morale (Per Shift): Team concerns, support needs and training gaps were discussed. Checked by the HOD; resolve by the next shift.'', 18, CAST(0 AS bit)),
-    (120, 11, N''Morale (Per Shift): Good performance and positive behaviours were recognised. Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 19, CAST(0 AS bit)),
-    (121, 11, N''H&S (Daily): General housekeeping and waste controls meet standard. Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 20, CAST(0 AS bit)),
-    (122, 11, N''Quality (Daily): A sample of completed orders was checked for accuracy ( PickList V Shipping Documents). Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 21, CAST(0 AS bit)),
-    (123, 11, N''Performance (Daily): Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows). Checked by the Senior Operator; resolve within the same day.'', 22, CAST(0 AS bit)),
-    (124, 11, N''Morale (Daily): Absence, overtime, workload and welfare concerns were reviewed. Checked by the HOD; resolve within the same day.'', 23, CAST(0 AS bit)),
-    (125, 12, N''H&S (Hourly): Walkways, fire exits and emergency routes are clear. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 0, CAST(1 AS bit)),
-    (126, 12, N''H&S (Hourly): PPE requirements are being followed. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 1, CAST(1 AS bit)),
-    (127, 12, N''H&S (Hourly): No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor). Checked by the Senior Operator; resolve immediately.'', 2, CAST(1 AS bit)),
-    (128, 12, N''H&S (Hourly): Loading bays, dock levellers and vehicle Security is safe (Rite Height). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 3, CAST(1 AS bit)),
-    (129, 12, N''Quality (Hourly): Correct product, quantity and destination are being picked (Bay Sheets). Checked by the Senior Operator; resolve within the same shift.'', 4, CAST(1 AS bit)),
-    (130, 12, N''Quality (Hourly): Labels, paperwork and scanning are accurate (Check Scanner V Loading). Checked by the Senior Operator; resolve within the same shift.'', 5, CAST(1 AS bit)),
-    (131, 12, N''Performance (Hourly): Picking and despatch activity is on plan. Checked by the Senior Operator; resolve within the same shift.'', 6, CAST(1 AS bit)),
-    (132, 12, N''Performance (Hourly): Bottlenecks, downtime and waiting vehicles are controlled. Checked by the Senior Operator; resolve within the same shift.'', 7, CAST(1 AS bit)),
-    (133, 12, N''H&S (Per Shift): Pre-use equipment checks are completed and defects reported (Check Booklets). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 8, CAST(0 AS bit)),
-    (134, 12, N''H&S (Per Shift): Spill kits, first-aid and fire points are accessible. Checked by the Senior Operator; resolve immediately.'', 9, CAST(0 AS bit)),
-    (135, 12, N''H&S (Per Shift): Pedestrian and MHE segregation controls are effective. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 10, CAST(0 AS bit)),
-    (136, 12, N''Quality (Per Shift): Packaging standards and load security are acceptable. Checked by the Senior Operator; resolve within the same shift.'', 11, CAST(0 AS bit));
-    INSERT INTO [TaskItems] ([Id], [TaskListId], [Text], [SortOrder], [IsTimeBoxed])
-    VALUES (137, 12, N''Quality (Per Shift): Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card. Checked by the Senior Operator; resolve within the same shift.'', 12, CAST(0 AS bit)),
-    (138, 12, N''Quality (Per Shift): FIFO/stock rotation requirements are followed where applicable (New). Checked by the Senior Operator; resolve within the same shift.'', 13, CAST(0 AS bit)),
-    (139, 12, N''Performance (Per Shift): Shift plan, priorities and cut-off times were communicated (Shift Start Up). Checked by the HOD; resolve within the same shift.'', 14, CAST(0 AS bit)),
-    (140, 12, N''Performance (Per Shift): Labour and equipment resources are adequate for the plan. Checked by the Senior Operator; resolve within the same shift.'', 15, CAST(0 AS bit)),
-    (141, 12, N''Performance (Per Shift): Shift KPIs, backlog and carry-over work were reviewed (RPS). Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 16, CAST(0 AS bit)),
-    (142, 12, N''Morale (Per Shift): Team brief and safety message were completed ( Start of Each Shift Team Brief). Checked by the HOD; resolve within the same shift.'', 17, CAST(0 AS bit)),
-    (143, 12, N''Morale (Per Shift): Team concerns, support needs and training gaps were discussed. Checked by the HOD; resolve by the next shift.'', 18, CAST(0 AS bit)),
-    (144, 12, N''Morale (Per Shift): Good performance and positive behaviours were recognised. Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 19, CAST(0 AS bit)),
-    (145, 12, N''H&S (Daily): General housekeeping and waste controls meet standard. Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 20, CAST(0 AS bit)),
-    (146, 12, N''Quality (Daily): A sample of completed orders was checked for accuracy ( PickList V Shipping Documents). Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 21, CAST(0 AS bit)),
-    (147, 12, N''Performance (Daily): Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows). Checked by the Senior Operator; resolve within the same day.'', 22, CAST(0 AS bit)),
-    (148, 12, N''Morale (Daily): Absence, overtime, workload and welfare concerns were reviewed. Checked by the HOD; resolve within the same day.'', 23, CAST(0 AS bit))');
-    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'TaskListId', N'Text', N'SortOrder', N'IsTimeBoxed') AND [object_id] = OBJECT_ID(N'[TaskItems]'))
+    EXEC(N'INSERT INTO [TaskItems] ([Id], [TaskListId], [Text], [SortOrder], [IsTimeBoxed], [Category], [Cadence], [ResponsibleRole], [EscalateToRole], [EscalationWindow])
+    VALUES (53, 9, N''Walkways, fire exits and emergency routes are clear'', 0, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (54, 9, N''PPE requirements are being followed'', 1, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (55, 9, N''No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor)'', 2, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', NULL, N''immediately''),
+    (56, 9, N''Loading bays, dock levellers and vehicle Security is safe (Rite Height)'', 3, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (57, 9, N''Correct product, quantity and destination are being picked (Bay Sheets)'', 4, CAST(1 AS bit), N''Quality'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (58, 9, N''Labels, paperwork and scanning are accurate (Check Scanner V Loading)'', 5, CAST(1 AS bit), N''Quality'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (59, 9, N''Picking and despatch activity is on plan'', 6, CAST(1 AS bit), N''Performance'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (60, 9, N''Bottlenecks, downtime and waiting vehicles are controlled'', 7, CAST(1 AS bit), N''Performance'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (61, 9, N''Pre-use equipment checks are completed and defects reported (Check Booklets)'', 8, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (62, 9, N''Spill kits, first-aid and fire points are accessible'', 9, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', NULL, N''immediately''),
+    (63, 9, N''Pedestrian and MHE segregation controls are effective'', 10, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (64, 9, N''Packaging standards and load security are acceptable'', 11, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (65, 9, N''Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card'', 12, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (66, 9, N''FIFO/stock rotation requirements are followed where applicable (New)'', 13, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (67, 9, N''Shift plan, priorities and cut-off times were communicated (Shift Start Up)'', 14, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''HOD'', NULL, N''within the same shift''),
+    (68, 9, N''Labour and equipment resources are adequate for the plan'', 15, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (69, 9, N''Shift KPIs, backlog and carry-over work were reviewed (RPS)'', 16, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''by the next shift''),
+    (70, 9, N''Team brief and safety message were completed ( Start of Each Shift Team Brief)'', 17, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''HOD'', NULL, N''within the same shift''),
+    (71, 9, N''Team concerns, support needs and training gaps were discussed'', 18, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''HOD'', NULL, N''by the next shift''),
+    (72, 9, N''Good performance and positive behaviours were recognised'', 19, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''by the next shift''),
+    (73, 9, N''General housekeeping and waste controls meet standard'', 20, CAST(0 AS bit), N''H&S'', N''Daily'', N''Senior Operator'', N''HOD'', N''within the same day''),
+    (74, 9, N''A sample of completed orders was checked for accuracy ( PickList V Shipping Documents)'', 21, CAST(0 AS bit), N''Quality'', N''Daily'', N''Senior Operator'', N''HOD'', N''within the same day''),
+    (75, 9, N''Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows)'', 22, CAST(0 AS bit), N''Performance'', N''Daily'', N''Senior Operator'', NULL, N''within the same day''),
+    (76, 9, N''Absence, overtime, workload and welfare concerns were reviewed'', 23, CAST(0 AS bit), N''Morale'', N''Daily'', N''HOD'', NULL, N''within the same day''),
+    (77, 10, N''Walkways, fire exits and emergency routes are clear'', 0, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (78, 10, N''PPE requirements are being followed'', 1, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (79, 10, N''No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor)'', 2, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', NULL, N''immediately''),
+    (80, 10, N''Loading bays, dock levellers and vehicle Security is safe (Rite Height)'', 3, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (81, 10, N''Correct product, quantity and destination are being picked (Bay Sheets)'', 4, CAST(1 AS bit), N''Quality'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (82, 10, N''Labels, paperwork and scanning are accurate (Check Scanner V Loading)'', 5, CAST(1 AS bit), N''Quality'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (83, 10, N''Picking and despatch activity is on plan'', 6, CAST(1 AS bit), N''Performance'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (84, 10, N''Bottlenecks, downtime and waiting vehicles are controlled'', 7, CAST(1 AS bit), N''Performance'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (85, 10, N''Pre-use equipment checks are completed and defects reported (Check Booklets)'', 8, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (86, 10, N''Spill kits, first-aid and fire points are accessible'', 9, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', NULL, N''immediately''),
+    (87, 10, N''Pedestrian and MHE segregation controls are effective'', 10, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (88, 10, N''Packaging standards and load security are acceptable'', 11, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (89, 10, N''Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card'', 12, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (90, 10, N''FIFO/stock rotation requirements are followed where applicable (New)'', 13, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (91, 10, N''Shift plan, priorities and cut-off times were communicated (Shift Start Up)'', 14, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''HOD'', NULL, N''within the same shift''),
+    (92, 10, N''Labour and equipment resources are adequate for the plan'', 15, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (93, 10, N''Shift KPIs, backlog and carry-over work were reviewed (RPS)'', 16, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''by the next shift''),
+    (94, 10, N''Team brief and safety message were completed ( Start of Each Shift Team Brief)'', 17, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''HOD'', NULL, N''within the same shift'');
+    INSERT INTO [TaskItems] ([Id], [TaskListId], [Text], [SortOrder], [IsTimeBoxed], [Category], [Cadence], [ResponsibleRole], [EscalateToRole], [EscalationWindow])
+    VALUES (95, 10, N''Team concerns, support needs and training gaps were discussed'', 18, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''HOD'', NULL, N''by the next shift''),
+    (96, 10, N''Good performance and positive behaviours were recognised'', 19, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''by the next shift''),
+    (97, 10, N''General housekeeping and waste controls meet standard'', 20, CAST(0 AS bit), N''H&S'', N''Daily'', N''Senior Operator'', N''HOD'', N''within the same day''),
+    (98, 10, N''A sample of completed orders was checked for accuracy ( PickList V Shipping Documents)'', 21, CAST(0 AS bit), N''Quality'', N''Daily'', N''Senior Operator'', N''HOD'', N''within the same day''),
+    (99, 10, N''Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows)'', 22, CAST(0 AS bit), N''Performance'', N''Daily'', N''Senior Operator'', NULL, N''within the same day''),
+    (100, 10, N''Absence, overtime, workload and welfare concerns were reviewed'', 23, CAST(0 AS bit), N''Morale'', N''Daily'', N''HOD'', NULL, N''within the same day''),
+    (101, 11, N''Walkways, fire exits and emergency routes are clear'', 0, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (102, 11, N''PPE requirements are being followed'', 1, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (103, 11, N''No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor)'', 2, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', NULL, N''immediately''),
+    (104, 11, N''Loading bays, dock levellers and vehicle Security is safe (Rite Height)'', 3, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (105, 11, N''Correct product, quantity and destination are being picked (Bay Sheets)'', 4, CAST(1 AS bit), N''Quality'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (106, 11, N''Labels, paperwork and scanning are accurate (Check Scanner V Loading)'', 5, CAST(1 AS bit), N''Quality'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (107, 11, N''Picking and despatch activity is on plan'', 6, CAST(1 AS bit), N''Performance'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (108, 11, N''Bottlenecks, downtime and waiting vehicles are controlled'', 7, CAST(1 AS bit), N''Performance'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (109, 11, N''Pre-use equipment checks are completed and defects reported (Check Booklets)'', 8, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (110, 11, N''Spill kits, first-aid and fire points are accessible'', 9, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', NULL, N''immediately''),
+    (111, 11, N''Pedestrian and MHE segregation controls are effective'', 10, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (112, 11, N''Packaging standards and load security are acceptable'', 11, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (113, 11, N''Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card'', 12, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (114, 11, N''FIFO/stock rotation requirements are followed where applicable (New)'', 13, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (115, 11, N''Shift plan, priorities and cut-off times were communicated (Shift Start Up)'', 14, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''HOD'', NULL, N''within the same shift''),
+    (116, 11, N''Labour and equipment resources are adequate for the plan'', 15, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (117, 11, N''Shift KPIs, backlog and carry-over work were reviewed (RPS)'', 16, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''by the next shift''),
+    (118, 11, N''Team brief and safety message were completed ( Start of Each Shift Team Brief)'', 17, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''HOD'', NULL, N''within the same shift''),
+    (119, 11, N''Team concerns, support needs and training gaps were discussed'', 18, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''HOD'', NULL, N''by the next shift''),
+    (120, 11, N''Good performance and positive behaviours were recognised'', 19, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''by the next shift''),
+    (121, 11, N''General housekeeping and waste controls meet standard'', 20, CAST(0 AS bit), N''H&S'', N''Daily'', N''Senior Operator'', N''HOD'', N''within the same day''),
+    (122, 11, N''A sample of completed orders was checked for accuracy ( PickList V Shipping Documents)'', 21, CAST(0 AS bit), N''Quality'', N''Daily'', N''Senior Operator'', N''HOD'', N''within the same day''),
+    (123, 11, N''Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows)'', 22, CAST(0 AS bit), N''Performance'', N''Daily'', N''Senior Operator'', NULL, N''within the same day''),
+    (124, 11, N''Absence, overtime, workload and welfare concerns were reviewed'', 23, CAST(0 AS bit), N''Morale'', N''Daily'', N''HOD'', NULL, N''within the same day''),
+    (125, 12, N''Walkways, fire exits and emergency routes are clear'', 0, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (126, 12, N''PPE requirements are being followed'', 1, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (127, 12, N''No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor)'', 2, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', NULL, N''immediately''),
+    (128, 12, N''Loading bays, dock levellers and vehicle Security is safe (Rite Height)'', 3, CAST(1 AS bit), N''H&S'', N''Hourly'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (129, 12, N''Correct product, quantity and destination are being picked (Bay Sheets)'', 4, CAST(1 AS bit), N''Quality'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (130, 12, N''Labels, paperwork and scanning are accurate (Check Scanner V Loading)'', 5, CAST(1 AS bit), N''Quality'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (131, 12, N''Picking and despatch activity is on plan'', 6, CAST(1 AS bit), N''Performance'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (132, 12, N''Bottlenecks, downtime and waiting vehicles are controlled'', 7, CAST(1 AS bit), N''Performance'', N''Hourly'', N''Senior Operator'', NULL, N''within the same shift''),
+    (133, 12, N''Pre-use equipment checks are completed and defects reported (Check Booklets)'', 8, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (134, 12, N''Spill kits, first-aid and fire points are accessible'', 9, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', NULL, N''immediately''),
+    (135, 12, N''Pedestrian and MHE segregation controls are effective'', 10, CAST(0 AS bit), N''H&S'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''immediately''),
+    (136, 12, N''Packaging standards and load security are acceptable'', 11, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift'');
+    INSERT INTO [TaskItems] ([Id], [TaskListId], [Text], [SortOrder], [IsTimeBoxed], [Category], [Cadence], [ResponsibleRole], [EscalateToRole], [EscalationWindow])
+    VALUES (137, 12, N''Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card'', 12, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (138, 12, N''FIFO/stock rotation requirements are followed where applicable (New)'', 13, CAST(0 AS bit), N''Quality'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (139, 12, N''Shift plan, priorities and cut-off times were communicated (Shift Start Up)'', 14, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''HOD'', NULL, N''within the same shift''),
+    (140, 12, N''Labour and equipment resources are adequate for the plan'', 15, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''Senior Operator'', NULL, N''within the same shift''),
+    (141, 12, N''Shift KPIs, backlog and carry-over work were reviewed (RPS)'', 16, CAST(0 AS bit), N''Performance'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''by the next shift''),
+    (142, 12, N''Team brief and safety message were completed ( Start of Each Shift Team Brief)'', 17, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''HOD'', NULL, N''within the same shift''),
+    (143, 12, N''Team concerns, support needs and training gaps were discussed'', 18, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''HOD'', NULL, N''by the next shift''),
+    (144, 12, N''Good performance and positive behaviours were recognised'', 19, CAST(0 AS bit), N''Morale'', N''Per Shift'', N''Senior Operator'', N''HOD'', N''by the next shift''),
+    (145, 12, N''General housekeeping and waste controls meet standard'', 20, CAST(0 AS bit), N''H&S'', N''Daily'', N''Senior Operator'', N''HOD'', N''within the same day''),
+    (146, 12, N''A sample of completed orders was checked for accuracy ( PickList V Shipping Documents)'', 21, CAST(0 AS bit), N''Quality'', N''Daily'', N''Senior Operator'', N''HOD'', N''within the same day''),
+    (147, 12, N''Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows)'', 22, CAST(0 AS bit), N''Performance'', N''Daily'', N''Senior Operator'', NULL, N''within the same day''),
+    (148, 12, N''Absence, overtime, workload and welfare concerns were reviewed'', 23, CAST(0 AS bit), N''Morale'', N''Daily'', N''HOD'', NULL, N''within the same day'')');
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'TaskListId', N'Text', N'SortOrder', N'IsTimeBoxed', N'Category', N'Cadence', N'ResponsibleRole', N'EscalateToRole', N'EscalationWindow') AND [object_id] = OBJECT_ID(N'[TaskItems]'))
         SET IDENTITY_INSERT [TaskItems] OFF;
 END;
 GO
 
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
-    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+    WHERE [MigrationId] = N'20260908152553_SeedDispatchWarehouseAudit'
 )
 BEGIN
     IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'TaskItemId', N'Label', N'SortOrder') AND [object_id] = OBJECT_ID(N'[TaskCheckpoints]'))
@@ -997,11 +1104,54 @@ GO
 
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
-    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+    WHERE [MigrationId] = N'20260908152553_SeedDispatchWarehouseAudit'
+)
+BEGIN
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'ListKind', N'Name', N'SortOrder', N'IsActive') AND [object_id] = OBJECT_ID(N'[RosterPeople]'))
+        SET IDENTITY_INSERT [RosterPeople] ON;
+    EXEC(N'INSERT INTO [RosterPeople] ([Id], [ListKind], [Name], [SortOrder], [IsActive])
+    VALUES (1, N''Hod'', N''George Thompson'', 1, CAST(1 AS bit)),
+    (2, N''Hod'', N''Lukasz Jaworski'', 2, CAST(1 AS bit)),
+    (3, N''Hod'', N''Alison Gilley'', 3, CAST(1 AS bit)),
+    (4, N''Hod'', N''Piotr Pelka'', 4, CAST(1 AS bit)),
+    (5, N''Hod'', N''Michael Tregillis'', 5, CAST(1 AS bit))');
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'ListKind', N'Name', N'SortOrder', N'IsActive') AND [object_id] = OBJECT_ID(N'[RosterPeople]'))
+        SET IDENTITY_INSERT [RosterPeople] OFF;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908152553_SeedDispatchWarehouseAudit'
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20260908122834_SeedDispatchWarehouseAudit', N'8.0.0');
+    VALUES (N'20260908152553_SeedDispatchWarehouseAudit', N'8.0.0');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908153012_AddCheckpointStatus'
+)
+BEGIN
+    ALTER TABLE [CheckpointResponses] ADD [Status] nvarchar(20) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908153012_AddCheckpointStatus'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260908153012_AddCheckpointStatus', N'8.0.0');
 END;
 GO
 

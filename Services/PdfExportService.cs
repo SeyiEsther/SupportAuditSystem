@@ -78,6 +78,12 @@ namespace SupportAuditSystem.Services
                             ValueCell(t, s.CompletedAt.HasValue
                                 ? s.CompletedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                                 : "Not yet completed");
+                            if (!string.IsNullOrEmpty(s.HodSignOffName))
+                            {
+                                LabelCell(t, "HOD Sign-off"); ValueCell(t, s.HodSignOffName);
+                                LabelCell(t, "Signed off");
+                                ValueCell(t, s.HodSignOffAt.HasValue ? s.HodSignOffAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "—");
+                            }
                         });
 
                         // Task table.
@@ -103,7 +109,19 @@ namespace SupportAuditSystem.Services
 
                                 t.Cell().Border(0.5f).BorderColor(BorderGray).Padding(5).Column(cc =>
                                 {
+                                    if (!string.IsNullOrEmpty(item.Category) || !string.IsNullOrEmpty(item.Cadence))
+                                    {
+                                        var tag = string.Join(" · ", new[] { item.Category, item.Cadence }.Where(x => !string.IsNullOrEmpty(x)));
+                                        cc.Item().Text(tag).FontSize(6).Bold().FontColor(MidGray);
+                                    }
                                     cc.Item().Text(item.Text).FontSize(8);
+                                    if (!string.IsNullOrEmpty(item.ResponsibleRole))
+                                    {
+                                        var line = $"Checked by {item.ResponsibleRole}" + (!string.IsNullOrEmpty(item.EscalateToRole)
+                                            ? $" — escalate to {item.EscalateToRole} {item.EscalationWindow} if not resolved"
+                                            : !string.IsNullOrEmpty(item.EscalationWindow) ? $" — resolve {item.EscalationWindow}" : "");
+                                        cc.Item().Text(line).FontSize(6.5f).Italic().FontColor(MidGray);
+                                    }
                                     if (item.IsTimeBoxed && resp != null)
                                     {
                                         var byCp = resp.CheckpointResponses.ToDictionary(x => x.TaskCheckpointId);
