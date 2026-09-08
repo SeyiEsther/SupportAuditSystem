@@ -8,7 +8,11 @@
      1. the RittalSupportSW database (if missing),
      2. the db_Public_User login/user the app connects as,
      3. the full schema (tables, keys, indexes),
-     4. the Stores + Dispatch seed data (verbatim task lists, SHEF014),
+     4. the Stores + Dispatch seed data (verbatim task lists, SHEF014,
+        plus Dispatch's Warehouse Audit transcribed from the supplied
+        spreadsheet: 24 checks across H&S/Quality/Performance/Morale,
+        seeded identically across Dispatch's 1st/2nd/3rd/Continental
+        nights shifts),
      5. the EF migration-history rows, so the app's startup migration
         sees everything as already applied and makes no further changes.
 
@@ -548,6 +552,456 @@ IF NOT EXISTS (
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
     VALUES (N'20260907093744_SeedSupportData', N'8.0.0');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+)
+BEGIN
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'DepartmentId', N'Name', N'DefaultLocation', N'SortOrder', N'IsActive') AND [object_id] = OBJECT_ID(N'[Areas]'))
+        SET IDENTITY_INSERT [Areas] ON;
+    EXEC(N'INSERT INTO [Areas] ([Id], [DepartmentId], [Name], [DefaultLocation], [SortOrder], [IsActive])
+    VALUES (3, 2, N''Warehouse'', N''Warehouse'', 1, CAST(1 AS bit))');
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'DepartmentId', N'Name', N'DefaultLocation', N'SortOrder', N'IsActive') AND [object_id] = OBJECT_ID(N'[Areas]'))
+        SET IDENTITY_INSERT [Areas] OFF;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+)
+BEGIN
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'DepartmentId', N'Name', N'SortOrder', N'IsActive') AND [object_id] = OBJECT_ID(N'[Shifts]'))
+        SET IDENTITY_INSERT [Shifts] ON;
+    EXEC(N'INSERT INTO [Shifts] ([Id], [DepartmentId], [Name], [SortOrder], [IsActive])
+    VALUES (5, 2, N''1st'', 1, CAST(1 AS bit)),
+    (6, 2, N''2nd'', 2, CAST(1 AS bit)),
+    (7, 2, N''3rd'', 3, CAST(1 AS bit)),
+    (8, 2, N''Continental nights'', 4, CAST(1 AS bit))');
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'DepartmentId', N'Name', N'SortOrder', N'IsActive') AND [object_id] = OBJECT_ID(N'[Shifts]'))
+        SET IDENTITY_INSERT [Shifts] OFF;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+)
+BEGIN
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'AreaId', N'ShiftId', N'Version', N'IsCurrent', N'HealthRepsReminder', N'CreatedAt', N'CreatedBy') AND [object_id] = OBJECT_ID(N'[TaskLists]'))
+        SET IDENTITY_INSERT [TaskLists] ON;
+    EXEC(N'INSERT INTO [TaskLists] ([Id], [AreaId], [ShiftId], [Version], [IsCurrent], [HealthRepsReminder], [CreatedAt], [CreatedBy])
+    VALUES (9, 3, 5, 1, CAST(1 AS bit), NULL, ''2026-01-01T00:00:00.0000000Z'', N''System seed''),
+    (10, 3, 6, 1, CAST(1 AS bit), NULL, ''2026-01-01T00:00:00.0000000Z'', N''System seed''),
+    (11, 3, 7, 1, CAST(1 AS bit), NULL, ''2026-01-01T00:00:00.0000000Z'', N''System seed''),
+    (12, 3, 8, 1, CAST(1 AS bit), NULL, ''2026-01-01T00:00:00.0000000Z'', N''System seed'')');
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'AreaId', N'ShiftId', N'Version', N'IsCurrent', N'HealthRepsReminder', N'CreatedAt', N'CreatedBy') AND [object_id] = OBJECT_ID(N'[TaskLists]'))
+        SET IDENTITY_INSERT [TaskLists] OFF;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+)
+BEGIN
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'TaskListId', N'Text', N'SortOrder', N'IsTimeBoxed') AND [object_id] = OBJECT_ID(N'[TaskItems]'))
+        SET IDENTITY_INSERT [TaskItems] ON;
+    EXEC(N'INSERT INTO [TaskItems] ([Id], [TaskListId], [Text], [SortOrder], [IsTimeBoxed])
+    VALUES (53, 9, N''H&S (Hourly): Walkways, fire exits and emergency routes are clear. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 0, CAST(1 AS bit)),
+    (54, 9, N''H&S (Hourly): PPE requirements are being followed. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 1, CAST(1 AS bit)),
+    (55, 9, N''H&S (Hourly): No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor). Checked by the Senior Operator; resolve immediately.'', 2, CAST(1 AS bit)),
+    (56, 9, N''H&S (Hourly): Loading bays, dock levellers and vehicle Security is safe (Rite Height). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 3, CAST(1 AS bit)),
+    (57, 9, N''Quality (Hourly): Correct product, quantity and destination are being picked (Bay Sheets). Checked by the Senior Operator; resolve within the same shift.'', 4, CAST(1 AS bit)),
+    (58, 9, N''Quality (Hourly): Labels, paperwork and scanning are accurate (Check Scanner V Loading). Checked by the Senior Operator; resolve within the same shift.'', 5, CAST(1 AS bit)),
+    (59, 9, N''Performance (Hourly): Picking and despatch activity is on plan. Checked by the Senior Operator; resolve within the same shift.'', 6, CAST(1 AS bit)),
+    (60, 9, N''Performance (Hourly): Bottlenecks, downtime and waiting vehicles are controlled. Checked by the Senior Operator; resolve within the same shift.'', 7, CAST(1 AS bit)),
+    (61, 9, N''H&S (Per Shift): Pre-use equipment checks are completed and defects reported (Check Booklets). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 8, CAST(0 AS bit)),
+    (62, 9, N''H&S (Per Shift): Spill kits, first-aid and fire points are accessible. Checked by the Senior Operator; resolve immediately.'', 9, CAST(0 AS bit)),
+    (63, 9, N''H&S (Per Shift): Pedestrian and MHE segregation controls are effective. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 10, CAST(0 AS bit)),
+    (64, 9, N''Quality (Per Shift): Packaging standards and load security are acceptable. Checked by the Senior Operator; resolve within the same shift.'', 11, CAST(0 AS bit)),
+    (65, 9, N''Quality (Per Shift): Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card. Checked by the Senior Operator; resolve within the same shift.'', 12, CAST(0 AS bit)),
+    (66, 9, N''Quality (Per Shift): FIFO/stock rotation requirements are followed where applicable (New). Checked by the Senior Operator; resolve within the same shift.'', 13, CAST(0 AS bit)),
+    (67, 9, N''Performance (Per Shift): Shift plan, priorities and cut-off times were communicated (Shift Start Up). Checked by the HOD; resolve within the same shift.'', 14, CAST(0 AS bit)),
+    (68, 9, N''Performance (Per Shift): Labour and equipment resources are adequate for the plan. Checked by the Senior Operator; resolve within the same shift.'', 15, CAST(0 AS bit)),
+    (69, 9, N''Performance (Per Shift): Shift KPIs, backlog and carry-over work were reviewed (RPS). Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 16, CAST(0 AS bit)),
+    (70, 9, N''Morale (Per Shift): Team brief and safety message were completed ( Start of Each Shift Team Brief). Checked by the HOD; resolve within the same shift.'', 17, CAST(0 AS bit)),
+    (71, 9, N''Morale (Per Shift): Team concerns, support needs and training gaps were discussed. Checked by the HOD; resolve by the next shift.'', 18, CAST(0 AS bit)),
+    (72, 9, N''Morale (Per Shift): Good performance and positive behaviours were recognised. Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 19, CAST(0 AS bit)),
+    (73, 9, N''H&S (Daily): General housekeeping and waste controls meet standard. Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 20, CAST(0 AS bit)),
+    (74, 9, N''Quality (Daily): A sample of completed orders was checked for accuracy ( PickList V Shipping Documents). Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 21, CAST(0 AS bit)),
+    (75, 9, N''Performance (Daily): Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows). Checked by the Senior Operator; resolve within the same day.'', 22, CAST(0 AS bit)),
+    (76, 9, N''Morale (Daily): Absence, overtime, workload and welfare concerns were reviewed. Checked by the HOD; resolve within the same day.'', 23, CAST(0 AS bit)),
+    (77, 10, N''H&S (Hourly): Walkways, fire exits and emergency routes are clear. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 0, CAST(1 AS bit)),
+    (78, 10, N''H&S (Hourly): PPE requirements are being followed. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 1, CAST(1 AS bit)),
+    (79, 10, N''H&S (Hourly): No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor). Checked by the Senior Operator; resolve immediately.'', 2, CAST(1 AS bit)),
+    (80, 10, N''H&S (Hourly): Loading bays, dock levellers and vehicle Security is safe (Rite Height). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 3, CAST(1 AS bit)),
+    (81, 10, N''Quality (Hourly): Correct product, quantity and destination are being picked (Bay Sheets). Checked by the Senior Operator; resolve within the same shift.'', 4, CAST(1 AS bit)),
+    (82, 10, N''Quality (Hourly): Labels, paperwork and scanning are accurate (Check Scanner V Loading). Checked by the Senior Operator; resolve within the same shift.'', 5, CAST(1 AS bit)),
+    (83, 10, N''Performance (Hourly): Picking and despatch activity is on plan. Checked by the Senior Operator; resolve within the same shift.'', 6, CAST(1 AS bit)),
+    (84, 10, N''Performance (Hourly): Bottlenecks, downtime and waiting vehicles are controlled. Checked by the Senior Operator; resolve within the same shift.'', 7, CAST(1 AS bit)),
+    (85, 10, N''H&S (Per Shift): Pre-use equipment checks are completed and defects reported (Check Booklets). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 8, CAST(0 AS bit)),
+    (86, 10, N''H&S (Per Shift): Spill kits, first-aid and fire points are accessible. Checked by the Senior Operator; resolve immediately.'', 9, CAST(0 AS bit)),
+    (87, 10, N''H&S (Per Shift): Pedestrian and MHE segregation controls are effective. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 10, CAST(0 AS bit)),
+    (88, 10, N''Quality (Per Shift): Packaging standards and load security are acceptable. Checked by the Senior Operator; resolve within the same shift.'', 11, CAST(0 AS bit)),
+    (89, 10, N''Quality (Per Shift): Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card. Checked by the Senior Operator; resolve within the same shift.'', 12, CAST(0 AS bit)),
+    (90, 10, N''Quality (Per Shift): FIFO/stock rotation requirements are followed where applicable (New). Checked by the Senior Operator; resolve within the same shift.'', 13, CAST(0 AS bit)),
+    (91, 10, N''Performance (Per Shift): Shift plan, priorities and cut-off times were communicated (Shift Start Up). Checked by the HOD; resolve within the same shift.'', 14, CAST(0 AS bit)),
+    (92, 10, N''Performance (Per Shift): Labour and equipment resources are adequate for the plan. Checked by the Senior Operator; resolve within the same shift.'', 15, CAST(0 AS bit)),
+    (93, 10, N''Performance (Per Shift): Shift KPIs, backlog and carry-over work were reviewed (RPS). Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 16, CAST(0 AS bit)),
+    (94, 10, N''Morale (Per Shift): Team brief and safety message were completed ( Start of Each Shift Team Brief). Checked by the HOD; resolve within the same shift.'', 17, CAST(0 AS bit));
+    INSERT INTO [TaskItems] ([Id], [TaskListId], [Text], [SortOrder], [IsTimeBoxed])
+    VALUES (95, 10, N''Morale (Per Shift): Team concerns, support needs and training gaps were discussed. Checked by the HOD; resolve by the next shift.'', 18, CAST(0 AS bit)),
+    (96, 10, N''Morale (Per Shift): Good performance and positive behaviours were recognised. Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 19, CAST(0 AS bit)),
+    (97, 10, N''H&S (Daily): General housekeeping and waste controls meet standard. Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 20, CAST(0 AS bit)),
+    (98, 10, N''Quality (Daily): A sample of completed orders was checked for accuracy ( PickList V Shipping Documents). Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 21, CAST(0 AS bit)),
+    (99, 10, N''Performance (Daily): Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows). Checked by the Senior Operator; resolve within the same day.'', 22, CAST(0 AS bit)),
+    (100, 10, N''Morale (Daily): Absence, overtime, workload and welfare concerns were reviewed. Checked by the HOD; resolve within the same day.'', 23, CAST(0 AS bit)),
+    (101, 11, N''H&S (Hourly): Walkways, fire exits and emergency routes are clear. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 0, CAST(1 AS bit)),
+    (102, 11, N''H&S (Hourly): PPE requirements are being followed. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 1, CAST(1 AS bit)),
+    (103, 11, N''H&S (Hourly): No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor). Checked by the Senior Operator; resolve immediately.'', 2, CAST(1 AS bit)),
+    (104, 11, N''H&S (Hourly): Loading bays, dock levellers and vehicle Security is safe (Rite Height). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 3, CAST(1 AS bit)),
+    (105, 11, N''Quality (Hourly): Correct product, quantity and destination are being picked (Bay Sheets). Checked by the Senior Operator; resolve within the same shift.'', 4, CAST(1 AS bit)),
+    (106, 11, N''Quality (Hourly): Labels, paperwork and scanning are accurate (Check Scanner V Loading). Checked by the Senior Operator; resolve within the same shift.'', 5, CAST(1 AS bit)),
+    (107, 11, N''Performance (Hourly): Picking and despatch activity is on plan. Checked by the Senior Operator; resolve within the same shift.'', 6, CAST(1 AS bit)),
+    (108, 11, N''Performance (Hourly): Bottlenecks, downtime and waiting vehicles are controlled. Checked by the Senior Operator; resolve within the same shift.'', 7, CAST(1 AS bit)),
+    (109, 11, N''H&S (Per Shift): Pre-use equipment checks are completed and defects reported (Check Booklets). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 8, CAST(0 AS bit)),
+    (110, 11, N''H&S (Per Shift): Spill kits, first-aid and fire points are accessible. Checked by the Senior Operator; resolve immediately.'', 9, CAST(0 AS bit)),
+    (111, 11, N''H&S (Per Shift): Pedestrian and MHE segregation controls are effective. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 10, CAST(0 AS bit)),
+    (112, 11, N''Quality (Per Shift): Packaging standards and load security are acceptable. Checked by the Senior Operator; resolve within the same shift.'', 11, CAST(0 AS bit)),
+    (113, 11, N''Quality (Per Shift): Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card. Checked by the Senior Operator; resolve within the same shift.'', 12, CAST(0 AS bit)),
+    (114, 11, N''Quality (Per Shift): FIFO/stock rotation requirements are followed where applicable (New). Checked by the Senior Operator; resolve within the same shift.'', 13, CAST(0 AS bit)),
+    (115, 11, N''Performance (Per Shift): Shift plan, priorities and cut-off times were communicated (Shift Start Up). Checked by the HOD; resolve within the same shift.'', 14, CAST(0 AS bit)),
+    (116, 11, N''Performance (Per Shift): Labour and equipment resources are adequate for the plan. Checked by the Senior Operator; resolve within the same shift.'', 15, CAST(0 AS bit)),
+    (117, 11, N''Performance (Per Shift): Shift KPIs, backlog and carry-over work were reviewed (RPS). Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 16, CAST(0 AS bit)),
+    (118, 11, N''Morale (Per Shift): Team brief and safety message were completed ( Start of Each Shift Team Brief). Checked by the HOD; resolve within the same shift.'', 17, CAST(0 AS bit)),
+    (119, 11, N''Morale (Per Shift): Team concerns, support needs and training gaps were discussed. Checked by the HOD; resolve by the next shift.'', 18, CAST(0 AS bit)),
+    (120, 11, N''Morale (Per Shift): Good performance and positive behaviours were recognised. Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 19, CAST(0 AS bit)),
+    (121, 11, N''H&S (Daily): General housekeeping and waste controls meet standard. Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 20, CAST(0 AS bit)),
+    (122, 11, N''Quality (Daily): A sample of completed orders was checked for accuracy ( PickList V Shipping Documents). Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 21, CAST(0 AS bit)),
+    (123, 11, N''Performance (Daily): Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows). Checked by the Senior Operator; resolve within the same day.'', 22, CAST(0 AS bit)),
+    (124, 11, N''Morale (Daily): Absence, overtime, workload and welfare concerns were reviewed. Checked by the HOD; resolve within the same day.'', 23, CAST(0 AS bit)),
+    (125, 12, N''H&S (Hourly): Walkways, fire exits and emergency routes are clear. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 0, CAST(1 AS bit)),
+    (126, 12, N''H&S (Hourly): PPE requirements are being followed. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 1, CAST(1 AS bit)),
+    (127, 12, N''H&S (Hourly): No unsafe stacking, damaged pallets or falling-object risks (Mezz Floor). Checked by the Senior Operator; resolve immediately.'', 2, CAST(1 AS bit)),
+    (128, 12, N''H&S (Hourly): Loading bays, dock levellers and vehicle Security is safe (Rite Height). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 3, CAST(1 AS bit)),
+    (129, 12, N''Quality (Hourly): Correct product, quantity and destination are being picked (Bay Sheets). Checked by the Senior Operator; resolve within the same shift.'', 4, CAST(1 AS bit)),
+    (130, 12, N''Quality (Hourly): Labels, paperwork and scanning are accurate (Check Scanner V Loading). Checked by the Senior Operator; resolve within the same shift.'', 5, CAST(1 AS bit)),
+    (131, 12, N''Performance (Hourly): Picking and despatch activity is on plan. Checked by the Senior Operator; resolve within the same shift.'', 6, CAST(1 AS bit)),
+    (132, 12, N''Performance (Hourly): Bottlenecks, downtime and waiting vehicles are controlled. Checked by the Senior Operator; resolve within the same shift.'', 7, CAST(1 AS bit)),
+    (133, 12, N''H&S (Per Shift): Pre-use equipment checks are completed and defects reported (Check Booklets). Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 8, CAST(0 AS bit)),
+    (134, 12, N''H&S (Per Shift): Spill kits, first-aid and fire points are accessible. Checked by the Senior Operator; resolve immediately.'', 9, CAST(0 AS bit)),
+    (135, 12, N''H&S (Per Shift): Pedestrian and MHE segregation controls are effective. Checked by the Senior Operator; escalate to HOD immediately if not resolved.'', 10, CAST(0 AS bit)),
+    (136, 12, N''Quality (Per Shift): Packaging standards and load security are acceptable. Checked by the Senior Operator; resolve within the same shift.'', 11, CAST(0 AS bit));
+    INSERT INTO [TaskItems] ([Id], [TaskListId], [Text], [SortOrder], [IsTimeBoxed])
+    VALUES (137, 12, N''Quality (Per Shift): Damaged, quarantined or non-conforming stock is controlled On Hold Products Red Card. Checked by the Senior Operator; resolve within the same shift.'', 12, CAST(0 AS bit)),
+    (138, 12, N''Quality (Per Shift): FIFO/stock rotation requirements are followed where applicable (New). Checked by the Senior Operator; resolve within the same shift.'', 13, CAST(0 AS bit)),
+    (139, 12, N''Performance (Per Shift): Shift plan, priorities and cut-off times were communicated (Shift Start Up). Checked by the HOD; resolve within the same shift.'', 14, CAST(0 AS bit)),
+    (140, 12, N''Performance (Per Shift): Labour and equipment resources are adequate for the plan. Checked by the Senior Operator; resolve within the same shift.'', 15, CAST(0 AS bit)),
+    (141, 12, N''Performance (Per Shift): Shift KPIs, backlog and carry-over work were reviewed (RPS). Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 16, CAST(0 AS bit)),
+    (142, 12, N''Morale (Per Shift): Team brief and safety message were completed ( Start of Each Shift Team Brief). Checked by the HOD; resolve within the same shift.'', 17, CAST(0 AS bit)),
+    (143, 12, N''Morale (Per Shift): Team concerns, support needs and training gaps were discussed. Checked by the HOD; resolve by the next shift.'', 18, CAST(0 AS bit)),
+    (144, 12, N''Morale (Per Shift): Good performance and positive behaviours were recognised. Checked by the Senior Operator; escalate to HOD by the next shift if not resolved.'', 19, CAST(0 AS bit)),
+    (145, 12, N''H&S (Daily): General housekeeping and waste controls meet standard. Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 20, CAST(0 AS bit)),
+    (146, 12, N''Quality (Daily): A sample of completed orders was checked for accuracy ( PickList V Shipping Documents). Checked by the Senior Operator; escalate to HOD within the same day if not resolved.'', 21, CAST(0 AS bit)),
+    (147, 12, N''Performance (Daily): Daily output, service, productivity and missed deadlines were reviewed ( Transport Late Runners, No Shows). Checked by the Senior Operator; resolve within the same day.'', 22, CAST(0 AS bit)),
+    (148, 12, N''Morale (Daily): Absence, overtime, workload and welfare concerns were reviewed. Checked by the HOD; resolve within the same day.'', 23, CAST(0 AS bit))');
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'TaskListId', N'Text', N'SortOrder', N'IsTimeBoxed') AND [object_id] = OBJECT_ID(N'[TaskItems]'))
+        SET IDENTITY_INSERT [TaskItems] OFF;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+)
+BEGIN
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'TaskItemId', N'Label', N'SortOrder') AND [object_id] = OBJECT_ID(N'[TaskCheckpoints]'))
+        SET IDENTITY_INSERT [TaskCheckpoints] ON;
+    EXEC(N'INSERT INTO [TaskCheckpoints] ([Id], [TaskItemId], [Label], [SortOrder])
+    VALUES (17, 53, N''Hour 1'', 0),
+    (18, 53, N''Hour 2'', 1),
+    (19, 53, N''Hour 3'', 2),
+    (20, 53, N''Hour 4'', 3),
+    (21, 53, N''Hour 5'', 4),
+    (22, 53, N''Hour 6'', 5),
+    (23, 53, N''Hour 7'', 6),
+    (24, 53, N''Hour 8'', 7),
+    (25, 54, N''Hour 1'', 0),
+    (26, 54, N''Hour 2'', 1),
+    (27, 54, N''Hour 3'', 2),
+    (28, 54, N''Hour 4'', 3),
+    (29, 54, N''Hour 5'', 4),
+    (30, 54, N''Hour 6'', 5),
+    (31, 54, N''Hour 7'', 6),
+    (32, 54, N''Hour 8'', 7),
+    (33, 55, N''Hour 1'', 0),
+    (34, 55, N''Hour 2'', 1),
+    (35, 55, N''Hour 3'', 2),
+    (36, 55, N''Hour 4'', 3),
+    (37, 55, N''Hour 5'', 4),
+    (38, 55, N''Hour 6'', 5),
+    (39, 55, N''Hour 7'', 6),
+    (40, 55, N''Hour 8'', 7),
+    (41, 56, N''Hour 1'', 0),
+    (42, 56, N''Hour 2'', 1),
+    (43, 56, N''Hour 3'', 2),
+    (44, 56, N''Hour 4'', 3),
+    (45, 56, N''Hour 5'', 4),
+    (46, 56, N''Hour 6'', 5),
+    (47, 56, N''Hour 7'', 6),
+    (48, 56, N''Hour 8'', 7),
+    (49, 57, N''Hour 1'', 0),
+    (50, 57, N''Hour 2'', 1),
+    (51, 57, N''Hour 3'', 2),
+    (52, 57, N''Hour 4'', 3),
+    (53, 57, N''Hour 5'', 4),
+    (54, 57, N''Hour 6'', 5),
+    (55, 57, N''Hour 7'', 6),
+    (56, 57, N''Hour 8'', 7),
+    (57, 58, N''Hour 1'', 0),
+    (58, 58, N''Hour 2'', 1);
+    INSERT INTO [TaskCheckpoints] ([Id], [TaskItemId], [Label], [SortOrder])
+    VALUES (59, 58, N''Hour 3'', 2),
+    (60, 58, N''Hour 4'', 3),
+    (61, 58, N''Hour 5'', 4),
+    (62, 58, N''Hour 6'', 5),
+    (63, 58, N''Hour 7'', 6),
+    (64, 58, N''Hour 8'', 7),
+    (65, 59, N''Hour 1'', 0),
+    (66, 59, N''Hour 2'', 1),
+    (67, 59, N''Hour 3'', 2),
+    (68, 59, N''Hour 4'', 3),
+    (69, 59, N''Hour 5'', 4),
+    (70, 59, N''Hour 6'', 5),
+    (71, 59, N''Hour 7'', 6),
+    (72, 59, N''Hour 8'', 7),
+    (73, 60, N''Hour 1'', 0),
+    (74, 60, N''Hour 2'', 1),
+    (75, 60, N''Hour 3'', 2),
+    (76, 60, N''Hour 4'', 3),
+    (77, 60, N''Hour 5'', 4),
+    (78, 60, N''Hour 6'', 5),
+    (79, 60, N''Hour 7'', 6),
+    (80, 60, N''Hour 8'', 7),
+    (81, 77, N''Hour 1'', 0),
+    (82, 77, N''Hour 2'', 1),
+    (83, 77, N''Hour 3'', 2),
+    (84, 77, N''Hour 4'', 3),
+    (85, 77, N''Hour 5'', 4),
+    (86, 77, N''Hour 6'', 5),
+    (87, 77, N''Hour 7'', 6),
+    (88, 77, N''Hour 8'', 7),
+    (89, 78, N''Hour 1'', 0),
+    (90, 78, N''Hour 2'', 1),
+    (91, 78, N''Hour 3'', 2),
+    (92, 78, N''Hour 4'', 3),
+    (93, 78, N''Hour 5'', 4),
+    (94, 78, N''Hour 6'', 5),
+    (95, 78, N''Hour 7'', 6),
+    (96, 78, N''Hour 8'', 7),
+    (97, 79, N''Hour 1'', 0),
+    (98, 79, N''Hour 2'', 1),
+    (99, 79, N''Hour 3'', 2),
+    (100, 79, N''Hour 4'', 3);
+    INSERT INTO [TaskCheckpoints] ([Id], [TaskItemId], [Label], [SortOrder])
+    VALUES (101, 79, N''Hour 5'', 4),
+    (102, 79, N''Hour 6'', 5),
+    (103, 79, N''Hour 7'', 6),
+    (104, 79, N''Hour 8'', 7),
+    (105, 80, N''Hour 1'', 0),
+    (106, 80, N''Hour 2'', 1),
+    (107, 80, N''Hour 3'', 2),
+    (108, 80, N''Hour 4'', 3),
+    (109, 80, N''Hour 5'', 4),
+    (110, 80, N''Hour 6'', 5),
+    (111, 80, N''Hour 7'', 6),
+    (112, 80, N''Hour 8'', 7),
+    (113, 81, N''Hour 1'', 0),
+    (114, 81, N''Hour 2'', 1),
+    (115, 81, N''Hour 3'', 2),
+    (116, 81, N''Hour 4'', 3),
+    (117, 81, N''Hour 5'', 4),
+    (118, 81, N''Hour 6'', 5),
+    (119, 81, N''Hour 7'', 6),
+    (120, 81, N''Hour 8'', 7),
+    (121, 82, N''Hour 1'', 0),
+    (122, 82, N''Hour 2'', 1),
+    (123, 82, N''Hour 3'', 2),
+    (124, 82, N''Hour 4'', 3),
+    (125, 82, N''Hour 5'', 4),
+    (126, 82, N''Hour 6'', 5),
+    (127, 82, N''Hour 7'', 6),
+    (128, 82, N''Hour 8'', 7),
+    (129, 83, N''Hour 1'', 0),
+    (130, 83, N''Hour 2'', 1),
+    (131, 83, N''Hour 3'', 2),
+    (132, 83, N''Hour 4'', 3),
+    (133, 83, N''Hour 5'', 4),
+    (134, 83, N''Hour 6'', 5),
+    (135, 83, N''Hour 7'', 6),
+    (136, 83, N''Hour 8'', 7),
+    (137, 84, N''Hour 1'', 0),
+    (138, 84, N''Hour 2'', 1),
+    (139, 84, N''Hour 3'', 2),
+    (140, 84, N''Hour 4'', 3),
+    (141, 84, N''Hour 5'', 4),
+    (142, 84, N''Hour 6'', 5);
+    INSERT INTO [TaskCheckpoints] ([Id], [TaskItemId], [Label], [SortOrder])
+    VALUES (143, 84, N''Hour 7'', 6),
+    (144, 84, N''Hour 8'', 7),
+    (145, 101, N''Hour 1'', 0),
+    (146, 101, N''Hour 2'', 1),
+    (147, 101, N''Hour 3'', 2),
+    (148, 101, N''Hour 4'', 3),
+    (149, 101, N''Hour 5'', 4),
+    (150, 101, N''Hour 6'', 5),
+    (151, 101, N''Hour 7'', 6),
+    (152, 101, N''Hour 8'', 7),
+    (153, 102, N''Hour 1'', 0),
+    (154, 102, N''Hour 2'', 1),
+    (155, 102, N''Hour 3'', 2),
+    (156, 102, N''Hour 4'', 3),
+    (157, 102, N''Hour 5'', 4),
+    (158, 102, N''Hour 6'', 5),
+    (159, 102, N''Hour 7'', 6),
+    (160, 102, N''Hour 8'', 7),
+    (161, 103, N''Hour 1'', 0),
+    (162, 103, N''Hour 2'', 1),
+    (163, 103, N''Hour 3'', 2),
+    (164, 103, N''Hour 4'', 3),
+    (165, 103, N''Hour 5'', 4),
+    (166, 103, N''Hour 6'', 5),
+    (167, 103, N''Hour 7'', 6),
+    (168, 103, N''Hour 8'', 7),
+    (169, 104, N''Hour 1'', 0),
+    (170, 104, N''Hour 2'', 1),
+    (171, 104, N''Hour 3'', 2),
+    (172, 104, N''Hour 4'', 3),
+    (173, 104, N''Hour 5'', 4),
+    (174, 104, N''Hour 6'', 5),
+    (175, 104, N''Hour 7'', 6),
+    (176, 104, N''Hour 8'', 7),
+    (177, 105, N''Hour 1'', 0),
+    (178, 105, N''Hour 2'', 1),
+    (179, 105, N''Hour 3'', 2),
+    (180, 105, N''Hour 4'', 3),
+    (181, 105, N''Hour 5'', 4),
+    (182, 105, N''Hour 6'', 5),
+    (183, 105, N''Hour 7'', 6),
+    (184, 105, N''Hour 8'', 7);
+    INSERT INTO [TaskCheckpoints] ([Id], [TaskItemId], [Label], [SortOrder])
+    VALUES (185, 106, N''Hour 1'', 0),
+    (186, 106, N''Hour 2'', 1),
+    (187, 106, N''Hour 3'', 2),
+    (188, 106, N''Hour 4'', 3),
+    (189, 106, N''Hour 5'', 4),
+    (190, 106, N''Hour 6'', 5),
+    (191, 106, N''Hour 7'', 6),
+    (192, 106, N''Hour 8'', 7),
+    (193, 107, N''Hour 1'', 0),
+    (194, 107, N''Hour 2'', 1),
+    (195, 107, N''Hour 3'', 2),
+    (196, 107, N''Hour 4'', 3),
+    (197, 107, N''Hour 5'', 4),
+    (198, 107, N''Hour 6'', 5),
+    (199, 107, N''Hour 7'', 6),
+    (200, 107, N''Hour 8'', 7),
+    (201, 108, N''Hour 1'', 0),
+    (202, 108, N''Hour 2'', 1),
+    (203, 108, N''Hour 3'', 2),
+    (204, 108, N''Hour 4'', 3),
+    (205, 108, N''Hour 5'', 4),
+    (206, 108, N''Hour 6'', 5),
+    (207, 108, N''Hour 7'', 6),
+    (208, 108, N''Hour 8'', 7),
+    (209, 125, N''Hour 1'', 0),
+    (210, 125, N''Hour 2'', 1),
+    (211, 125, N''Hour 3'', 2),
+    (212, 125, N''Hour 4'', 3),
+    (213, 125, N''Hour 5'', 4),
+    (214, 125, N''Hour 6'', 5),
+    (215, 125, N''Hour 7'', 6),
+    (216, 125, N''Hour 8'', 7),
+    (217, 126, N''Hour 1'', 0),
+    (218, 126, N''Hour 2'', 1),
+    (219, 126, N''Hour 3'', 2),
+    (220, 126, N''Hour 4'', 3),
+    (221, 126, N''Hour 5'', 4),
+    (222, 126, N''Hour 6'', 5),
+    (223, 126, N''Hour 7'', 6),
+    (224, 126, N''Hour 8'', 7),
+    (225, 127, N''Hour 1'', 0),
+    (226, 127, N''Hour 2'', 1);
+    INSERT INTO [TaskCheckpoints] ([Id], [TaskItemId], [Label], [SortOrder])
+    VALUES (227, 127, N''Hour 3'', 2),
+    (228, 127, N''Hour 4'', 3),
+    (229, 127, N''Hour 5'', 4),
+    (230, 127, N''Hour 6'', 5),
+    (231, 127, N''Hour 7'', 6),
+    (232, 127, N''Hour 8'', 7),
+    (233, 128, N''Hour 1'', 0),
+    (234, 128, N''Hour 2'', 1),
+    (235, 128, N''Hour 3'', 2),
+    (236, 128, N''Hour 4'', 3),
+    (237, 128, N''Hour 5'', 4),
+    (238, 128, N''Hour 6'', 5),
+    (239, 128, N''Hour 7'', 6),
+    (240, 128, N''Hour 8'', 7),
+    (241, 129, N''Hour 1'', 0),
+    (242, 129, N''Hour 2'', 1),
+    (243, 129, N''Hour 3'', 2),
+    (244, 129, N''Hour 4'', 3),
+    (245, 129, N''Hour 5'', 4),
+    (246, 129, N''Hour 6'', 5),
+    (247, 129, N''Hour 7'', 6),
+    (248, 129, N''Hour 8'', 7),
+    (249, 130, N''Hour 1'', 0),
+    (250, 130, N''Hour 2'', 1),
+    (251, 130, N''Hour 3'', 2),
+    (252, 130, N''Hour 4'', 3),
+    (253, 130, N''Hour 5'', 4),
+    (254, 130, N''Hour 6'', 5),
+    (255, 130, N''Hour 7'', 6),
+    (256, 130, N''Hour 8'', 7),
+    (257, 131, N''Hour 1'', 0),
+    (258, 131, N''Hour 2'', 1),
+    (259, 131, N''Hour 3'', 2),
+    (260, 131, N''Hour 4'', 3),
+    (261, 131, N''Hour 5'', 4),
+    (262, 131, N''Hour 6'', 5),
+    (263, 131, N''Hour 7'', 6),
+    (264, 131, N''Hour 8'', 7),
+    (265, 132, N''Hour 1'', 0),
+    (266, 132, N''Hour 2'', 1),
+    (267, 132, N''Hour 3'', 2),
+    (268, 132, N''Hour 4'', 3);
+    INSERT INTO [TaskCheckpoints] ([Id], [TaskItemId], [Label], [SortOrder])
+    VALUES (269, 132, N''Hour 5'', 4),
+    (270, 132, N''Hour 6'', 5),
+    (271, 132, N''Hour 7'', 6),
+    (272, 132, N''Hour 8'', 7)');
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'TaskItemId', N'Label', N'SortOrder') AND [object_id] = OBJECT_ID(N'[TaskCheckpoints]'))
+        SET IDENTITY_INSERT [TaskCheckpoints] OFF;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260908122834_SeedDispatchWarehouseAudit'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260908122834_SeedDispatchWarehouseAudit', N'8.0.0');
 END;
 GO
 

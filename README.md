@@ -54,10 +54,24 @@ A data migration (`SeedSupportData`) creates Stores and Dispatch; for Stores the
 areas *Stores DP1 & DP3* (one combined area — the paper form covers both) and
 *Consumables*, the four shifts, and the four task lists transcribed verbatim from
 the Word documents (15 / 15 / 12 / 10 lines). Consumables gets empty lists across
-all four shifts; Dispatch gets the department row only. Everything the 1st-shift
-form recorded as Done/Issue/Notes and the others as Y/N is standardised on
-Done/Issue plus Notes, and the 2nd-shift Y/N reversal on two rows is not
-reproduced.
+all four shifts. Everything the 1st-shift form recorded as Done/Issue/Notes and
+the others as Y/N is standardised on Done/Issue plus Notes, and the 2nd-shift
+Y/N reversal on two rows is not reproduced.
+
+A second migration (`SeedDispatchWarehouseAudit`) fills in Dispatch from its
+Warehouse Audit spreadsheet. The source has no area or shift breakdown, so it
+creates a single *Warehouse* area and reuses the site's 1st/2nd/3rd/Continental
+nights shift pattern (as separate Dispatch-owned rows — nothing shared with
+Stores beyond the name), seeding the same 24-check audit identically across all
+four. The source instead varies by **category** (H&S / Quality / Performance /
+Morale), **cadence** (Hourly / Per Shift / Daily) and an escalation window with
+an accountable role (Senior Operator / HOD) — none of which have dedicated
+schema columns, so they're folded into each task's text, e.g. *"H&S (Hourly):
+Walkways, fire exits and emergency routes are clear. Checked by the Senior
+Operator; escalate to HOD immediately if not resolved."* Hourly-cadence checks
+(8 of the 24) are time-boxed with generic **Hour 1–Hour 8** checkpoints — the
+source gives no specific clock times, so none are invented; the checkpoint
+timestamp records when it was genuinely ticked, same as Stores.
 
 ## Auth & hosting
 
