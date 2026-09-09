@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using SupportAuditSystem.Data;
@@ -11,8 +12,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 
-// Persist Data Protection keys outside the app folder so an app-pool recycle or
-// a redeploy can't regenerate the keys and invalidate in-flight antiforgery
+// Windows Authentication, handled by the app's own web server. The app runs as
+// its own process on the remote desktop machine with nothing in front of it, so
+// it negotiates the Windows identity itself. UserService still just reads
+// HttpContext.User, and falls back to the process account if negotiation is
+// unavailable.
+builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme).AddNegotiate();
+builder.Services.AddAuthorization();
+
+// Persist Data Protection keys outside the app folder so a restart or a
+// redeploy can't regenerate the keys and invalidate in-flight antiforgery
 // tokens (which would turn a save into an HTTP 400). Pick the first writable
 // candidate folder.
 static string? ResolveWritableKeyDir(params string?[] candidates)
@@ -118,6 +127,10 @@ app.UseStatusCodePages(async ctx =>
 });
 
 app.UseStaticFiles();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 app.MapRazorPages();
 

@@ -7,8 +7,8 @@ Logistics are pure configuration — no department, area, shift or task text liv
 in code.
 
 It shares the exact visual identity of the Production Audit System (RittalTLSW)
-but has its own SQL Server database (**RittalSupportSW** on CSMSVR02) and its own
-IIS site.
+but has its own SQL Server database (**RittalSupportSW** on CSMSVR02) and runs as
+its own self-hosted process on the remote desktop machine.
 
 ## The governing rule
 
@@ -90,9 +90,11 @@ task list carries an HOD escalation line.
 
 ## Auth & hosting
 
-Windows Authentication via IIS — the app reads the identity IIS forwards rather
-than configuring authentication in code. See `deploy/README.md` for the IIS site
-setup on csm-srv-16.
+Windows Authentication is negotiated by the app itself — there is no web server
+in front of it to configure. It falls back to the account the app runs under if
+negotiation isn't available. The app hosts itself on port 52288
+(`Kestrel:Endpoints:Http:Url` in `appsettings.json`); see `deploy/README.md` for
+publishing it to the remote desktop machine.
 
 ## Running locally
 

@@ -1,8 +1,8 @@
 # Deploying the Support Audit System
 
 This is an ASP.NET Core 8 Razor Pages application with its own SQL Server
-database, deployed to **IIS on csm-srv-16** as its own site on its own port,
-separate from the Production Audit System (RittalTLSW).
+database. It runs **as its own process on the remote desktop machine**, on its
+own port, with no web server in front of it — the app hosts itself.
 
 ## Database
 
@@ -27,25 +27,56 @@ separate from the Production Audit System (RittalTLSW).
 dotnet publish -c Release -o publish
 ```
 
-Copy the `publish` folder to the site root on csm-srv-16.
+Copy the `publish` folder onto the remote desktop machine, e.g.
+`C:\Apps\SupportAuditSystem`.
 
-## IIS site
+## Run it
 
-1. Create a new **Website** (not an app under an existing site) pointing at the
-   published folder, e.g. `SupportAuditSystem`.
-2. Give it its **own binding on its own port** (e.g. `http://*:8082`), distinct
-   from the Production Audit System's site.
-3. Assign it a dedicated **Application Pool** (No Managed Code — the app runs
-   in-process via the ASP.NET Core Module).
-4. Under **Authentication** for the site:
-   - **Windows Authentication → Enabled**
-   - **Anonymous Authentication → Disabled**
-   The app configures no authentication in code; it reads the identity IIS
-   forwards. `web.config` sets `forwardWindowsAuthToken="true"`.
-5. Ensure the app-pool identity can reach CSMSVR02 and can write the Data
-   Protection key folder (a sibling `SupportAudit-dataprotection-keys` folder,
-   or set `DataProtection:KeyPath`). Without a writable key folder, an app-pool
-   recycle invalidates open forms (HTTP 400 on save).
+```
+cd C:\Apps\SupportAuditSystem
+SupportAuditSystem.exe
+```
+
+It binds **http://*:52288** (set in `appsettings.json` under
+`Kestrel:Endpoints:Http:Url` — change the port there if it clashes). Browse
+`http://localhost:52288` on the machine itself, or `http://<machine-name>:52288`
+from elsewhere on the network.
+
+Leaving a console window open is fine for testing, but for day-to-day use start
+it automatically:
+
+1. **Task Scheduler → Create Task.**
+2. General: *Run whether user is logged on or not*; give it an account that can
+   reach CSMSVR02.
+3. Triggers: *At startup*.
+4. Actions: *Start a program* → `C:\Apps\SupportAuditSystem\SupportAuditSystem.exe`,
+   Start in → `C:\Apps\SupportAuditSystem`.
+5. Settings: untick *Stop the task if it runs longer than…*.
+
+To update it later: stop the task (or close the window), copy the new `publish`
+output over the folder, start it again. The files are locked while it runs, so
+stop it first.
+
+## Network access
+
+If other machines need to reach it, allow the port through Windows Firewall on
+the remote desktop machine:
+
+```
+netsh advfirewall firewall add rule name="Support Audit System" dir=in action=allow protocol=TCP localport=52288
+```
+
+## Windows Authentication
+
+The app negotiates the Windows identity itself — there is nothing to configure
+outside it. Browsers on the domain pass the signed-in user automatically for a
+local or intranet address; if negotiation isn't available the app falls back to
+the account it is running under rather than failing.
+
+Make sure the account the app runs under can reach CSMSVR02 and can write the
+Data Protection key folder (a sibling `SupportAudit-dataprotection-keys` folder,
+or set `DataProtection:KeyPath`). Without a writable key folder, a restart
+invalidates open forms (HTTP 400 on save).
 
 ## Admins
 

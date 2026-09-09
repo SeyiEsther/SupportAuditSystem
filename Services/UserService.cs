@@ -5,9 +5,9 @@ using SupportAuditSystem.Models;
 
 namespace SupportAuditSystem.Services
 {
-    // Resolves the current user from the Windows identity IIS forwards. No
-    // authentication is configured in code — IIS handles Windows Authentication
-    // and we read HttpContext.User.
+    // Resolves the current user from the negotiated Windows identity on
+    // HttpContext.User. If negotiation is unavailable the account the app is
+    // running under is used instead, so the app still works.
     public class UserService
     {
         private readonly IHttpContextAccessor _http;

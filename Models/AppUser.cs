@@ -1,6 +1,6 @@
 namespace SupportAuditSystem.Models
 {
-    // The signed-in Windows user, resolved from the identity IIS forwards.
+    // The signed-in Windows user, resolved from the negotiated Windows identity.
     public class AppUser
     {
         public string Username { get; set; } = "";
