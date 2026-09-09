@@ -1,0 +1,91 @@
+@page
+@model SupportAuditSystem.Pages.Admin.DiagnosticsModel
+@{
+    ViewData["Title"] = "Diagnostics";
+}
+
+<div class="page">
+    <div class="page-head">
+        <div>
+            <div class="page-title">Diagnostics</div>
+            <div class="page-sub">What this running app actually is, and what state its data is in.</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head"><div class="card-title">Build</div></div>
+        <div style="padding:14px 18px">
+            <div style="font-size:13px;color:var(--muted)">Assembly version</div>
+            <div style="font-size:15px;font-weight:600;margin-bottom:10px">@Model.AssemblyVersion</div>
+            <div style="font-size:13px;color:var(--muted)">Binary built</div>
+            <div style="font-size:15px;font-weight:600">@Model.BuildTime</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head"><div class="card-title">Database migrations</div></div>
+        <div style="padding:14px 18px">
+            @if (Model.Pending.Any())
+            {
+                <div class="escl-banner" style="border-radius:10px;margin-bottom:12px">
+                    @Model.Pending.Count migration(s) have not been applied. Restart the app, or run
+                    <code>dotnet ef database update</code>.
+                </div>
+                <ul style="margin:0 0 14px 18px;font-size:13px">
+                    @foreach (var m in Model.Pending) { <li>@m</li> }
+                </ul>
+            }
+            else
+            {
+                <div style="font-size:13px;margin-bottom:12px">All migrations applied.</div>
+            }
+            <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Applied (@Model.Applied.Count)</div>
+            <ul style="margin:0 0 0 18px;font-size:13px;color:var(--muted)">
+                @foreach (var m in Model.Applied) { <li>@m</li> }
+            </ul>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <div class="card-title">How each current task list will render</div>
+        </div>
+        <div style="padding:0 0 8px">
+            <div class="grid-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="qcol">Department / area / shift</th>
+                            <th class="hcol">Ver</th>
+                            <th class="hcol">Items</th>
+                            <th class="hcol">Time-boxed</th>
+                            <th class="hcol">Categorised</th>
+                            <th class="hcol">Grid rows</th>
+                            <th class="hcol">Cards</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Model.TaskLists)
+                        {
+                            <tr class="dr">
+                                <td class="acc">@r.Department — @r.Area — @r.Shift</td>
+                                <td style="text-align:center">@r.Version</td>
+                                <td style="text-align:center">@r.Items</td>
+                                <td style="text-align:center">@r.TimeBoxed</td>
+                                <td style="text-align:center">@r.Categorised</td>
+                                <td style="text-align:center;font-weight:700">@r.GridRows</td>
+                                <td style="text-align:center">@r.Cards</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div style="padding:12px 18px;font-size:12px;color:var(--muted)">
+                A task line joins the hourly grid when it is <strong>time-boxed</strong> and carries a
+                <strong>category</strong>. Everything else renders as a card. A Dispatch list should show
+                8 grid rows and 16 cards; a Stores list should show 0 grid rows, its time-boxed lines
+                staying as cards with a checkpoint strip.
+            </div>
+        </div>
+    </div>
+</div>
